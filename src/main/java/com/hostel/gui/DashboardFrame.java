@@ -19,10 +19,9 @@ public class DashboardFrame extends JFrame {
 
     // Module panels
     private StudentPanel studentPanel;
-    private JPanel roomPanel;
-    private JPanel enrollmentPanel;
-    private JPanel attendancePanel;
-    private JPanel reportPanel;
+    private RoomPanel roomPanel;
+    private AttendancePanel attendancePanel;
+    private ReportPanel reportPanel;
 
     public DashboardFrame() {
         setTitle("Smart Hostel - Dashboard");
@@ -45,14 +44,12 @@ public class DashboardFrame extends JFrame {
         // Create the module panels
         studentPanel = new StudentPanel();
         roomPanel = new RoomPanel();
-        enrollmentPanel = createPlaceholderPanel("Biometric Enrollment");
-        attendancePanel = createPlaceholderPanel("Attendance Terminal");
-        reportPanel = createPlaceholderPanel("Reports");
+        attendancePanel = new AttendancePanel();
+        reportPanel = new ReportPanel();
 
         // Add cards to the content panel (each with a unique name)
         contentPanel.add(studentPanel, "STUDENTS");
         contentPanel.add(roomPanel, "ROOMS");
-        contentPanel.add(enrollmentPanel, "ENROLLMENT");
         contentPanel.add(attendancePanel, "ATTENDANCE");
         contentPanel.add(reportPanel, "REPORTS");
 
@@ -87,10 +84,13 @@ public class DashboardFrame extends JFrame {
         sidebar.add(Box.createRigidArea(new Dimension(0, 8)));
         sidebar.add(createNavButton("🏠 Rooms", "ROOMS"));
         sidebar.add(Box.createRigidArea(new Dimension(0, 8)));
-        sidebar.add(createNavButton("🖐️ Enrollment", "ENROLLMENT"));
+
+        // Attendance button with refresh action
+        JButton attendanceNavBtn = createNavButton("📋 Attendance", "ATTENDANCE");
+        attendanceNavBtn.addActionListener(e -> attendancePanel.loadNextStudent());
+        sidebar.add(attendanceNavBtn);
         sidebar.add(Box.createRigidArea(new Dimension(0, 8)));
-        sidebar.add(createNavButton("📋 Attendance", "ATTENDANCE"));
-        sidebar.add(Box.createRigidArea(new Dimension(0, 8)));
+
         sidebar.add(createNavButton("📊 Reports", "REPORTS"));
 
         return sidebar;
@@ -124,15 +124,5 @@ public class DashboardFrame extends JFrame {
         button.addActionListener(e -> cardLayout.show(contentPanel, cardName));
 
         return button;
-    }
-
-    /** Helper to create a placeholder panel with a title */
-    private JPanel createPlaceholderPanel(String title) {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(MAIN_BG);
-        JLabel label = new JLabel(title, SwingConstants.CENTER);
-        label.setFont(new Font("SansSerif", Font.BOLD, 20));
-        panel.add(label, BorderLayout.CENTER);
-        return panel;
     }
 }

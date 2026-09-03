@@ -1,7 +1,5 @@
 package com.hostel.db;
-
 import com.hostel.gui.MainFrame;
-
 import javax.swing.*;
 import java.sql.Connection;
 import java.sql.DriverManager;

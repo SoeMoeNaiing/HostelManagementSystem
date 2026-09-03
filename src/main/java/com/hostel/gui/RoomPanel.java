@@ -4,14 +4,20 @@ import com.hostel.dao.RoomDAO;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.List;
 
 public class RoomPanel extends JPanel {
     private RoomDAO roomDAO;
     private JPanel cardGrid;
     private static final Color PRIMARY_COLOR = new Color(33, 97, 140);
-    private int selectedRoomId = -1;   // track selected room for edit/delete
-    private RoomCard selectedCard = null;   // track which card is visually selected
+    private int selectedRoomId = -1;
+    private RoomCard selectedCard = null;
+
+    private JButton editRoomBtn;
+    private JButton deleteRoomBtn;
+
     public RoomPanel() {
         roomDAO = new RoomDAO();
         setLayout(new BorderLayout());
@@ -26,14 +32,17 @@ public class RoomPanel extends JPanel {
         title.setForeground(Color.WHITE);
         titleBar.add(title, BorderLayout.WEST);
 
-        // Toolbar with action buttons
+        // Toolbar
         JPanel toolbar = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 8));
         toolbar.setBackground(Color.WHITE);
 
         JButton addRoomBtn = createModernButton("＋ Add Room", PRIMARY_COLOR);
-        JButton editRoomBtn = createModernButton("✎ Edit Room", PRIMARY_COLOR);
-        JButton deleteRoomBtn = createModernButton("✕ Delete Room", new Color(180, 50, 50));
+        editRoomBtn = createModernButton("✎ Edit Room", PRIMARY_COLOR);
+        deleteRoomBtn = createModernButton("✕ Delete Room", new Color(180, 50, 50));
         JButton refreshBtn = createModernButton("↻ Refresh", Color.GRAY);
+
+        editRoomBtn.setEnabled(false);
+        deleteRoomBtn.setEnabled(false);
 
         toolbar.add(addRoomBtn);
         toolbar.add(editRoomBtn);
@@ -46,7 +55,7 @@ public class RoomPanel extends JPanel {
         northPanel.add(toolbar, BorderLayout.SOUTH);
         add(northPanel, BorderLayout.NORTH);
 
-        // Card grid inside scroll pane
+        // Card grid
         cardGrid = new JPanel(new GridLayout(0, 3, 15, 15));
         cardGrid.setBackground(Color.WHITE);
         cardGrid.setBorder(new EmptyBorder(15, 15, 15, 15));
@@ -54,10 +63,10 @@ public class RoomPanel extends JPanel {
                 JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
                 JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         scrollPane.getViewport().setBackground(Color.WHITE);
-        scrollPane.getVerticalScrollBar().setUnitIncrement(20);  // faster scrolling
+        scrollPane.getVerticalScrollBar().setUnitIncrement(20);
         add(scrollPane, BorderLayout.CENTER);
 
-        // Button actions
+        // Actions
         addRoomBtn.addActionListener(e -> openAddRoomDialog());
         editRoomBtn.addActionListener(e -> openEditRoomDialog());
         deleteRoomBtn.addActionListener(e -> deleteSelectedRoom());
@@ -84,11 +93,10 @@ public class RoomPanel extends JPanel {
 
     private void openEditRoomDialog() {
         if (selectedRoomId == -1) {
-            JOptionPane.showMessageDialog(this, "Please click on a room card to select it first.");
+            JOptionPane.showMessageDialog(this, "Please select a room first.");
             return;
         }
-        // Fetch current room data
-        List<Object[]> rooms = roomDAO.getAllRooms();  // not efficient, but for simplicity
+        List<Object[]> rooms = roomDAO.getAllRooms();
         for (Object[] r : rooms) {
             int id = (int) r[0];
             if (id == selectedRoomId) {
@@ -117,7 +125,7 @@ public class RoomPanel extends JPanel {
 
     private void deleteSelectedRoom() {
         if (selectedRoomId == -1) {
-            JOptionPane.showMessageDialog(this, "Please click on a room card to select it first.");
+            JOptionPane.showMessageDialog(this, "Please select a room first.");
             return;
         }
         int confirm = JOptionPane.showConfirmDialog(this,
@@ -126,7 +134,7 @@ public class RoomPanel extends JPanel {
         if (confirm == JOptionPane.YES_OPTION) {
             boolean ok = roomDAO.deleteRoom(selectedRoomId);
             if (ok) {
-                selectedRoomId = -1;   // clear selection
+                selectedRoomId = -1;
                 refreshRoomCards();
                 JOptionPane.showMessageDialog(this, "Room deleted.");
             } else {
@@ -135,9 +143,33 @@ public class RoomPanel extends JPanel {
         }
     }
 
+    private void openRoomDetails() {
+        if (selectedRoomId == -1) {
+            JOptionPane.showMessageDialog(this, "Please select a room first.");
+            return;
+        }
+        List<Object[]> rooms = roomDAO.getAllRooms();
+        for (Object[] r : rooms) {
+            int id = (int) r[0];
+            if (id == selectedRoomId) {
+                String roomNumber = (String) r[1];
+                String hostelName = (String) r[4];
+                JFrame parent = (JFrame) SwingUtilities.getWindowAncestor(RoomPanel.this);
+                RoomDetailsDialog dialog = new RoomDetailsDialog(parent, id,
+                        roomNumber + " (" + hostelName + ")", this::refreshRoomCards);
+                dialog.setVisible(true);
+                return;
+            }
+        }
+        JOptionPane.showMessageDialog(this, "Selected room not found.", "Error", JOptionPane.ERROR_MESSAGE);
+    }
+
     private void refreshRoomCards() {
         selectedRoomId = -1;
         selectedCard = null;
+        editRoomBtn.setEnabled(false);
+        deleteRoomBtn.setEnabled(false);
+
         cardGrid.removeAll();
         List<Object[]> rooms = roomDAO.getAllRooms();
         for (Object[] r : rooms) {
@@ -151,24 +183,28 @@ public class RoomPanel extends JPanel {
 
             RoomCard card = new RoomCard(roomId, roomNumber, floor, capacity, hostelName, hostelType);
             card.updateBeds(occupancy, capacity);
-            card.updateAttendanceStatus(0, occupancy);  // attendance stub
+            card.updateAttendanceStatus(0, occupancy);
 
-            // Click: select the card and open details dialog
-            card.addCardClickListener(() -> {
-                // 1. Deselect previously selected card (if any)
-                if (selectedCard != null) {
-                    selectedCard.setSelected(false);
+            // Add mouse listener for single-click (select) and double-click (open details)
+            card.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    if (e.getClickCount() == 1) {
+                        // Single click: select the card
+                        if (selectedCard != null) {
+                            selectedCard.setSelected(false);
+                        }
+                        selectedCard = card;
+                        card.setSelected(true);
+                        selectedRoomId = roomId;
+                        editRoomBtn.setEnabled(true);
+                        deleteRoomBtn.setEnabled(true);
+                    } else if (e.getClickCount() == 2) {
+                        // Double click: open the room details dialog
+                        selectedRoomId = roomId; // ensure it's the selected one
+                        openRoomDetails();
+                    }
                 }
-                // 2. Select the new card
-                selectedCard = card;
-                card.setSelected(true);
-                selectedRoomId = roomId;
-
-                // 3. Open room details dialog
-                JFrame parent = (JFrame) SwingUtilities.getWindowAncestor(RoomPanel.this);
-                RoomDetailsDialog dialog = new RoomDetailsDialog(parent, roomId,
-                        roomNumber + " (" + hostelName + ")", this::refreshRoomCards);
-                dialog.setVisible(true);
             });
             cardGrid.add(card);
         }
