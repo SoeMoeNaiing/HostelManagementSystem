@@ -11,6 +11,7 @@ public class StudentPanel extends JPanel {
     private JTable table;
     private DefaultTableModel tableModel;
     private StudentDAO studentDAO;
+    private Runnable onStudentDataChanged;
 
     private static final Color PRIMARY_COLOR = new Color(33, 97, 140);
     private static final Color DANGER_COLOR = new Color(180, 50, 50);
@@ -74,6 +75,11 @@ public class StudentPanel extends JPanel {
         loadStudents();
     }
 
+    // This method will be called by DashboardFrame to set the callback
+    public void setOnStudentDataChanged(Runnable callback) {
+        this.onStudentDataChanged = callback;
+    }
+
     private void loadStudents() {
         tableModel.setRowCount(0);
         List<Object[]> students = studentDAO.getAllStudents();
@@ -102,6 +108,7 @@ public class StudentPanel extends JPanel {
             );
             if (success) {
                 loadStudents();
+                if (onStudentDataChanged != null) onStudentDataChanged.run();
                 JOptionPane.showMessageDialog(this, "Student added successfully!");
             } else {
                 JOptionPane.showMessageDialog(this, "Failed to add student.", "Error", JOptionPane.ERROR_MESSAGE);
@@ -123,17 +130,17 @@ public class StudentPanel extends JPanel {
         }
         JFrame parent = (JFrame) SwingUtilities.getWindowAncestor(this);
         StudentFormDialog dialog = new StudentFormDialog(parent,
-                (String) studentData[0],  // studentId
-                (String) studentData[1],  // name
-                (String) studentData[2],  // gender
-                (String) studentData[3],  // year
-                (String) studentData[4],  // major
-                (String) studentData[5],  // email
-                (String) studentData[6],  // phone
-                (String) studentData[7],  // guardianName
-                (String) studentData[8],  // guardianPhone
-                (String) studentData[9],  // address
-                (String) studentData[10]  // nrc
+                (String) studentData[0],
+                (String) studentData[1],
+                (String) studentData[2],
+                (String) studentData[3],
+                (String) studentData[4],
+                (String) studentData[5],
+                (String) studentData[6],
+                (String) studentData[7],
+                (String) studentData[8],
+                (String) studentData[9],
+                (String) studentData[10]
         );
         dialog.setVisible(true);
         if (dialog.isConfirmed()) {
@@ -152,6 +159,7 @@ public class StudentPanel extends JPanel {
             );
             if (success) {
                 loadStudents();
+                if (onStudentDataChanged != null) onStudentDataChanged.run();
                 JOptionPane.showMessageDialog(this, "Student updated successfully!");
             } else {
                 JOptionPane.showMessageDialog(this, "Failed to update student.", "Error", JOptionPane.ERROR_MESSAGE);
@@ -174,6 +182,7 @@ public class StudentPanel extends JPanel {
             boolean success = studentDAO.deleteStudent(studentId);
             if (success) {
                 loadStudents();
+                if (onStudentDataChanged != null) onStudentDataChanged.run();
                 JOptionPane.showMessageDialog(this, "Student deleted.");
             } else {
                 JOptionPane.showMessageDialog(this, "Failed to delete student.", "Error", JOptionPane.ERROR_MESSAGE);

@@ -1,6 +1,5 @@
 package com.hostel.dao;
 
-
 import com.hostel.db.DBConnection;
 import java.sql.*;
 import java.time.LocalDate;
@@ -10,9 +9,7 @@ import java.util.List;
 public class AttendanceDAO {
 
     /**
-     * Get the first student who has NOT been marked (present or absent) today.
-     * Returns Object[]: student_id, student_name, gender, year, major, phone_number
-     * or null if all marked.
+     * Get the first student who has NOT been marked (present/absent/leave) today.
      */
     public Object[] getNextUnmarkedStudent() {
         String sql = "SELECT s.student_id, s.student_name, s.gender, s.year, s.major, s.phone_number " +
@@ -44,11 +41,12 @@ public class AttendanceDAO {
      * Mark attendance for a student today.
      * @param studentId roll number
      * @param status 'Present', 'Absent', or 'Leave'
+     * @param remark optional remark (e.g., leave reason)
      * @return true if inserted successfully
      */
-    public boolean markAttendance(String studentId, String status) {
-        String sql = "INSERT INTO RollCall (student_id, date, check_in_time, method, terminal_id, status) " +
-                "VALUES (?, CURDATE(), ?, 'MANUAL', 'DESKTOP-1', ?)";
+    public boolean markAttendance(String studentId, String status, String remark) {
+        String sql = "INSERT INTO RollCall (student_id, date, check_in_time, method, terminal_id, status, remark) " +
+                "VALUES (?, CURDATE(), ?, 'MANUAL', 'DESKTOP-1', ?, ?)";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, studentId);
@@ -58,6 +56,11 @@ public class AttendanceDAO {
                 ps.setNull(2, Types.TIMESTAMP);
             }
             ps.setString(3, status);
+            if (remark == null || remark.trim().isEmpty()) {
+                ps.setNull(4, Types.VARCHAR);
+            } else {
+                ps.setString(4, remark);
+            }
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             e.printStackTrace();
@@ -99,5 +102,63 @@ public class AttendanceDAO {
             e.printStackTrace();
         }
         return summary;
+    }
+
+    /**
+     * Get attendance log for a specific date (all students with status/remark).
+     * @param date in 'YYYY-MM-DD' format
+     * @return list of Object[]: student_id, student_name, status, remark
+     */
+    public List<Object[]> getDailyAttendance(String date) {
+        List<Object[]> records = new ArrayList<>();
+        String sql = "SELECT s.student_id, s.student_name, " +
+                "COALESCE(rc.status, 'Unmarked') AS status, " +
+                "rc.remark " +
+                "FROM Student s " +
+                "LEFT JOIN RollCall rc ON s.student_id = rc.student_id AND rc.date = ? " +
+                "ORDER BY s.student_id";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, date);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    records.add(new Object[]{
+                            rs.getString("student_id"),
+                            rs.getString("student_name"),
+                            rs.getString("status"),
+                            rs.getString("remark")
+                    });
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return records;
+    }
+    public int[] getStudentMonthlySummary(String studentId, String startDate, String endDate) {
+        String sql = "SELECT " +
+                "SUM(CASE WHEN status = 'Present' THEN 1 ELSE 0 END), " +
+                "SUM(CASE WHEN status = 'Absent' THEN 1 ELSE 0 END), " +
+                "SUM(CASE WHEN status = 'Leave' THEN 1 ELSE 0 END) " +
+                "FROM RollCall " +
+                "WHERE student_id = ? AND date BETWEEN ? AND ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, studentId);
+            ps.setString(2, startDate);
+            ps.setString(3, endDate);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return new int[]{
+                            rs.getInt(1),  // present
+                            rs.getInt(2),  // absent
+                            rs.getInt(3)   // leave
+                    };
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return new int[]{0, 0, 0};
     }
 }

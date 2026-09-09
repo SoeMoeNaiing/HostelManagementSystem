@@ -17,6 +17,7 @@ public class RoomPanel extends JPanel {
 
     private JButton editRoomBtn;
     private JButton deleteRoomBtn;
+    private Runnable onStudentDataChanged;
 
     public RoomPanel() {
         roomDAO = new RoomDAO();
@@ -163,8 +164,10 @@ public class RoomPanel extends JPanel {
         }
         JOptionPane.showMessageDialog(this, "Selected room not found.", "Error", JOptionPane.ERROR_MESSAGE);
     }
-
-    private void refreshRoomCards() {
+    public void setOnStudentDataChanged(Runnable callback) {
+        this.onStudentDataChanged = callback;
+    }
+    public void refreshRoomCards() {
         selectedRoomId = -1;
         selectedCard = null;
         editRoomBtn.setEnabled(false);

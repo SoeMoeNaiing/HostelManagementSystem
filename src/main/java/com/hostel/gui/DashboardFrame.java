@@ -21,7 +21,8 @@ public class DashboardFrame extends JFrame {
     private StudentPanel studentPanel;
     private RoomPanel roomPanel;
     private AttendancePanel attendancePanel;
-    private ReportPanel reportPanel;
+    private DailyAttendancePanel reportPanel;
+    private StudentReportPanel studentReportPanel;
 
     public DashboardFrame() {
         setTitle("Smart Hostel - Dashboard");
@@ -45,13 +46,17 @@ public class DashboardFrame extends JFrame {
         studentPanel = new StudentPanel();
         roomPanel = new RoomPanel();
         attendancePanel = new AttendancePanel();
-        reportPanel = new ReportPanel();
+        reportPanel = new DailyAttendancePanel();
+        studentReportPanel = new StudentReportPanel();
+        // Connect student panel to room panel for auto-refresh after changes
+        studentPanel.setOnStudentDataChanged(() -> roomPanel.refreshRoomCards());
 
         // Add cards to the content panel (each with a unique name)
         contentPanel.add(studentPanel, "STUDENTS");
         contentPanel.add(roomPanel, "ROOMS");
         contentPanel.add(attendancePanel, "ATTENDANCE");
-        contentPanel.add(reportPanel, "REPORTS");
+        contentPanel.add(reportPanel, "ATTENDANCE LOG");
+        contentPanel.add(studentReportPanel, "STUDENT_REPORT");   // <-- fixed card name
 
         // Show the first card by default
         cardLayout.show(contentPanel, "STUDENTS");
@@ -91,7 +96,9 @@ public class DashboardFrame extends JFrame {
         sidebar.add(attendanceNavBtn);
         sidebar.add(Box.createRigidArea(new Dimension(0, 8)));
 
-        sidebar.add(createNavButton("📊 Reports", "REPORTS"));
+        sidebar.add(createNavButton("📊 Attendance Log", "ATTENDANCE LOG"));
+        sidebar.add(Box.createRigidArea(new Dimension(0, 8)));
+        sidebar.add(createNavButton("🧾 Student Report", "STUDENT_REPORT"));
 
         return sidebar;
     }

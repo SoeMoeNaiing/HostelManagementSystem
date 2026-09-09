@@ -128,4 +128,33 @@ public class StudentDAO {
             return false;
         }
     }
+
+    public Object[] getStudentReportInfo(String studentId) {
+        String sql = "SELECT s.student_id, s.student_name, s.gender, s.year, s.major, " +
+                "r.room_number, h.hostel_name " +
+                "FROM Student s " +
+                "LEFT JOIN Room r ON s.room_id = r.room_id " +
+                "LEFT JOIN Hostel h ON r.hostel_id = h.hostel_id " +
+                "WHERE s.student_id = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, studentId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return new Object[]{
+                            rs.getString("student_id"),
+                            rs.getString("student_name"),
+                            rs.getString("gender"),
+                            rs.getString("year"),
+                            rs.getString("major"),
+                            rs.getString("room_number"),   // may be null
+                            rs.getString("hostel_name")    // may be null
+                    };
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
 }
