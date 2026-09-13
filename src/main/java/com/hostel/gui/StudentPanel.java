@@ -73,7 +73,7 @@ public class StudentPanel extends JPanel {
         buttonBar.add(detailsButton);
         buttonBar.add(refreshButton);
 
-        String[] columnNames = {"ID", "Name", "Gender", "Year", "Major", "Phone"};
+        String[] columnNames = {"Roll No.", "Name", "Gender", "Year", "Major", "Phone"};
         tableModel = new DefaultTableModel(columnNames, 0);
         table = new JTable(tableModel);
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);

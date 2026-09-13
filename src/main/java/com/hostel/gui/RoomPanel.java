@@ -42,7 +42,7 @@ public class RoomPanel extends JPanel {
         JPanel toolbar = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 8));
         toolbar.setBackground(Color.WHITE);
 
-        JButton addRoomBtn = createModernButton("＋ Add Room", PRIMARY_COLOR);
+        JButton addRoomBtn = createModernButton("+ Add Room", PRIMARY_COLOR);
         editRoomBtn = createModernButton("✎ Edit Room", PRIMARY_COLOR);
         deleteRoomBtn = createModernButton("✕ Delete Room", new Color(180, 50, 50));
         JButton refreshBtn = createModernButton("↻ Refresh", Color.GRAY);

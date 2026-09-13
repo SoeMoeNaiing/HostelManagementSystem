@@ -78,7 +78,7 @@ public class StudentFormDialog extends JDialog {
         }
 
         int row = 0;
-        addFormRow(formPanel, gbc, "Student ID:", studentIdField, row++);
+        addFormRow(formPanel, gbc, "Roll No:", studentIdField, row++);
         addFormRow(formPanel, gbc, "Name:", nameField, row++);
         addFormRow(formPanel, gbc, "Gender:", genderCombo, row++);
         addFormRow(formPanel, gbc, "Year:", yearField, row++);
@@ -98,7 +98,7 @@ public class StudentFormDialog extends JDialog {
         saveButton.addActionListener(e -> {
             if (studentIdField.getText().trim().isEmpty() || nameField.getText().trim().isEmpty()) {
                 JOptionPane.showMessageDialog(this,
-                        "Student ID and Name are required!",
+                        "Roll No. and Name are required!",
                         "Validation Error",
                         JOptionPane.ERROR_MESSAGE);
                 return;

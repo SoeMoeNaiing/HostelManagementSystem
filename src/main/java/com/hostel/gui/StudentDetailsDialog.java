@@ -55,7 +55,7 @@ public class StudentDetailsDialog extends JDialog {
         }
 
         int row = 0;
-        addRow(detailsPanel, gbc, "Student ID:", studentId, row++);
+        addRow(detailsPanel, gbc, "Roll No:", studentId, row++);
         addRow(detailsPanel, gbc, "Name:", name, row++);
         addRow(detailsPanel, gbc, "Gender:", gender, row++);
         addRow(detailsPanel, gbc, "Year:", year, row++);

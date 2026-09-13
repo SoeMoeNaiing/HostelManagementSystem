@@ -101,7 +101,7 @@ public class AttendancePanel extends JPanel {
         presentBtn.setEnabled(true);
         absentBtn.setEnabled(true);
         nameLabel.setText((String) currentStudent[1]);
-        idLabel.setText("ID: " + currentStudent[0]);
+        idLabel.setText("Roll No: " + currentStudent[0]);
         infoLabel.setText(currentStudent[2] + " | " + currentStudent[3] + " | " + currentStudent[4]);
     }
 

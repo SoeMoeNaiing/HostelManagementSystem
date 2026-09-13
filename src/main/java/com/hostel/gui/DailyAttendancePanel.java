@@ -73,7 +73,7 @@ public class DailyAttendancePanel extends JPanel {
         topPanel.add(controlPanel, BorderLayout.SOUTH);
 
         // ----- Table -----
-        String[] cols = {"Student ID", "Name", "Status", "Remark"};
+        String[] cols = {"Roll No.", "Name", "Status", "Remark"};
         tableModel = new DefaultTableModel(cols, 0);
         table = new JTable(tableModel);
         table.setRowHeight(25);

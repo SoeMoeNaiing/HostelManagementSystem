@@ -35,7 +35,7 @@ public class AssignStudentDialog extends JDialog {
         title.setFont(new Font("SansSerif", Font.BOLD, 14));
         mainPanel.add(title, BorderLayout.NORTH);
 
-        String[] cols = {"Student ID", "Name", "Year", "Major", "Phone"};
+        String[] cols = {"Roll No.", "Name", "Year", "Major", "Phone"};
         tableModel = new DefaultTableModel(cols, 0);
         studentTable = new JTable(tableModel);
         studentTable.setRowHeight(22);
