@@ -11,32 +11,38 @@ public class AttendanceDAO {
     /**
      * Get the first student who has NOT been marked (present/absent/leave) today.
      */
-    public Object[] getNextUnmarkedStudent() {
+    public Object[] getNextUnmarkedStudent(String hostelType) {
         String sql = "SELECT s.student_id, s.student_name, s.gender, s.year, s.major, s.phone_number " +
                 "FROM Student s " +
                 "LEFT JOIN RollCall rc ON s.student_id = rc.student_id AND rc.date = CURDATE() " +
-                "WHERE rc.rollcall_id IS NULL " +
-                "ORDER BY s.student_id ASC " +
-                "LIMIT 1";
+                "WHERE rc.rollcall_id IS NULL ";
+        if (hostelType != null) {
+            sql += " AND s.gender = ? ";
+        }
+        sql += " ORDER BY s.student_id ASC LIMIT 1";
+
         try (Connection conn = DBConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-            if (rs.next()) {
-                return new Object[]{
-                        rs.getString("student_id"),
-                        rs.getString("student_name"),
-                        rs.getString("gender"),
-                        rs.getString("year"),
-                        rs.getString("major"),
-                        rs.getString("phone_number")
-                };
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            if (hostelType != null) {
+                ps.setString(1, "Boys".equalsIgnoreCase(hostelType) ? "Male" : "Female");
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return new Object[]{
+                            rs.getString("student_id"),
+                            rs.getString("student_name"),
+                            rs.getString("gender"),
+                            rs.getString("year"),
+                            rs.getString("major"),
+                            rs.getString("phone_number")
+                    };
+                }
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
         return null;
     }
-
     /**
      * Mark attendance for a student today.
      * @param studentId roll number
@@ -109,17 +115,23 @@ public class AttendanceDAO {
      * @param date in 'YYYY-MM-DD' format
      * @return list of Object[]: student_id, student_name, status, remark
      */
-    public List<Object[]> getDailyAttendance(String date) {
+    public List<Object[]> getDailyAttendance(String date, String hostelType) {
         List<Object[]> records = new ArrayList<>();
         String sql = "SELECT s.student_id, s.student_name, " +
                 "COALESCE(rc.status, 'Unmarked') AS status, " +
                 "rc.remark " +
                 "FROM Student s " +
-                "LEFT JOIN RollCall rc ON s.student_id = rc.student_id AND rc.date = ? " +
-                "ORDER BY s.student_id";
+                "LEFT JOIN RollCall rc ON s.student_id = rc.student_id AND rc.date = ? ";
+        if (hostelType != null) {
+            sql += " WHERE s.gender = ? ";
+        }
+        sql += " ORDER BY s.student_id";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, date);
+            if (hostelType != null) {
+                ps.setString(2, "Boys".equalsIgnoreCase(hostelType) ? "Male" : "Female");
+            }
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     records.add(new Object[]{
@@ -160,5 +172,33 @@ public class AttendanceDAO {
             e.printStackTrace();
         }
         return new int[]{0, 0, 0};
+    }
+    /**
+     * Get daily records for one student in a date range.
+     * Returns list of Object[]: date (LocalDate), status, remark
+     */
+    public List<Object[]> getStudentDailyRecords(String studentId, String startDate, String endDate) {
+        List<Object[]> records = new ArrayList<>();
+        String sql = "SELECT date, status, remark FROM RollCall " +
+                "WHERE student_id = ? AND date BETWEEN ? AND ? " +
+                "ORDER BY date";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, studentId);
+            ps.setString(2, startDate);
+            ps.setString(3, endDate);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    records.add(new Object[]{
+                            rs.getDate("date").toLocalDate(),
+                            rs.getString("status"),
+                            rs.getString("remark")
+                    });
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return records;
     }
 }

@@ -7,22 +7,32 @@ import java.util.List;
 
 public class StudentDAO {
 
-    public List<Object[]> getAllStudents() {
+    public List<Object[]> getAllStudents(String hostelType) {
         List<Object[]> students = new ArrayList<>();
         String sql = "SELECT student_id, student_name, gender, year, major, phone_number " +
-                "FROM Student ORDER BY student_id";
+                "FROM Student";
+        if (hostelType != null) {
+            sql += " WHERE gender = ?";
+        }
+        sql += " ORDER BY student_id";
+
         try (Connection conn = DBConnection.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-            while (rs.next()) {
-                students.add(new Object[]{
-                        rs.getString("student_id"),
-                        rs.getString("student_name"),
-                        rs.getString("gender"),
-                        rs.getString("year"),
-                        rs.getString("major"),
-                        rs.getString("phone_number")
-                });
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            if (hostelType != null) {
+                String gender = "Boys".equalsIgnoreCase(hostelType) ? "Male" : "Female";
+                ps.setString(1, gender);
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    students.add(new Object[]{
+                            rs.getString("student_id"),
+                            rs.getString("student_name"),
+                            rs.getString("gender"),
+                            rs.getString("year"),
+                            rs.getString("major"),
+                            rs.getString("phone_number")
+                    });
+                }
             }
         } catch (SQLException e) {
             e.printStackTrace();

@@ -72,9 +72,15 @@ public class AssignStudentDialog extends JDialog {
             return;
         }
         String studentId = (String) tableModel.getValueAt(row, 0);
-        // Check capacity
-        int occupancy = roomDAO.getOccupancyCount(roomId);
-        // We don't have room capacity easily here; we'll validate in the future.
+
+        // Check if room is full
+        if (roomDAO.isRoomFull(roomId)) {
+            JOptionPane.showMessageDialog(this,
+                    "This room is full. Cannot assign more students.",
+                    "Room Full", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
         boolean ok = roomDAO.assignStudentToRoom(studentId, roomId);
         if (ok) {
             studentAssigned = true;

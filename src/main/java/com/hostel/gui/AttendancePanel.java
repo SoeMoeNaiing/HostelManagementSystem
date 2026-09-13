@@ -11,6 +11,7 @@ public class AttendancePanel extends JPanel {
     private JLabel nameLabel, idLabel, infoLabel;
     private JButton presentBtn, leaveBtn, absentBtn;
     private String remark = null;
+    private String hostelType;
 
     private static final Color PRIMARY_COLOR = new Color(33, 97, 140);
     private static final Color SUCCESS_COLOR = new Color(46, 204, 113);
@@ -18,7 +19,9 @@ public class AttendancePanel extends JPanel {
     private static final Color LEAVE_COLOR = new Color(255, 165, 0);
     private static final Color BACKGROUND_COLOR = Color.WHITE;
 
-    public AttendancePanel() {
+    public AttendancePanel(String hostelType) {
+        this.hostelType = hostelType;
+
         attendanceDAO = new AttendanceDAO();
         setLayout(new BorderLayout());
         setBackground(BACKGROUND_COLOR);
@@ -101,7 +104,7 @@ public class AttendancePanel extends JPanel {
     }
 
     public void loadNextStudent() {
-        currentStudent = attendanceDAO.getNextUnmarkedStudent();
+        currentStudent = attendanceDAO.getNextUnmarkedStudent(hostelType);
         if (currentStudent == null) {
             nameLabel.setText("All students marked for today");
             idLabel.setText("");

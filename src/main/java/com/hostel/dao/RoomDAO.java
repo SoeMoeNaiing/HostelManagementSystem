@@ -32,32 +32,36 @@ public class RoomDAO {
      * Get all rooms with occupancy info.
      * Returns list of Object[]: room_id, room_number, floor_number, capacity, hostel_name, type.
      */
-    public List<Object[]> getAllRooms() {
+    public List<Object[]> getAllRooms(Integer hostelId) {
         List<Object[]> rooms = new ArrayList<>();
         String sql = "SELECT r.room_id, r.room_number, r.floor_number, r.capacity, " +
                 "h.hostel_name, h.type " +
-                "FROM Room r JOIN Hostel h ON r.hostel_id = h.hostel_id " +
-                // Sort by floor first, then by numeric part of room number
-                "ORDER BY r.floor_number, CAST(SUBSTRING(r.room_number, 2) AS UNSIGNED)";
+                "FROM Room r JOIN Hostel h ON r.hostel_id = h.hostel_id ";
+        if (hostelId != null) {
+            sql += " WHERE r.hostel_id = ? ";
+        }
+        sql += " ORDER BY r.floor_number, CAST(SUBSTRING(r.room_number, 2) AS UNSIGNED)";
+
         try (Connection conn = DBConnection.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-            while (rs.next()) {
-                rooms.add(new Object[]{
-                        rs.getInt("room_id"),
-                        rs.getString("room_number"),
-                        rs.getInt("floor_number"),
-                        rs.getInt("capacity"),
-                        rs.getString("hostel_name"),
-                        rs.getString("type")
-                });
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            if (hostelId != null) ps.setInt(1, hostelId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    rooms.add(new Object[]{
+                            rs.getInt("room_id"),
+                            rs.getString("room_number"),
+                            rs.getInt("floor_number"),
+                            rs.getInt("capacity"),
+                            rs.getString("hostel_name"),
+                            rs.getString("type")
+                    });
+                }
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
         return rooms;
     }
-
     /**
      * Get all students assigned to a specific room.
      * Returns list of Object[]: student_id, student_name, year, major, phone_number.
@@ -116,6 +120,10 @@ public class RoomDAO {
      * Assign a student to a room (update Student.room_id).
      */
     public boolean assignStudentToRoom(String studentId, int roomId) {
+        // Safety check: don't assign if room is full
+        if (isRoomFull(roomId)) {
+            return false;
+        }
         String sql = "UPDATE Student SET room_id = ? WHERE student_id = ?";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -226,5 +234,24 @@ public class RoomDAO {
             e.printStackTrace();
             return false;
         }
+    }
+    public int getRoomCapacity(int roomId) {
+        String sql = "SELECT capacity FROM Room WHERE room_id = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, roomId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getInt("capacity");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    public boolean isRoomFull(int roomId) {
+        int capacity = getRoomCapacity(roomId);
+        int occupancy = getOccupancyCount(roomId);
+        return occupancy >= capacity;
     }
 }

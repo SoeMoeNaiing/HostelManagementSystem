@@ -6,18 +6,22 @@ import java.sql.*;
 public class UserDAO {
 
     /**
-     * Authenticate user.
-     * Returns "admin", "warden", or null if invalid.
+     * Returns Object[]{role, hostelId, hostelType} or null if invalid.
+     * hostelId/hostelType are null for admin.
      */
-    public String authenticate(String username, String password) {
-        String sql = "SELECT role FROM User WHERE username = ? AND password = ?";
+    public Object[] authenticateAndGetUser(String username, String password) {
+        String sql = "SELECT u.role, u.hostel_id, h.type " +
+                "FROM User u LEFT JOIN Hostel h ON u.hostel_id = h.hostel_id " +
+                "WHERE u.username = ? AND u.password = ?";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, username);
             ps.setString(2, password);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    return rs.getString("role");
+                    Integer hostelId = (Integer) rs.getObject("hostel_id");
+                    String type = rs.getString("type");
+                    return new Object[]{ rs.getString("role"), hostelId, type };
                 }
             }
         } catch (SQLException e) {
@@ -26,36 +30,40 @@ public class UserDAO {
         return null;
     }
 
-    /**
-     * Seed default users if User table is empty.
-     * Creates admin/admin123 and warden/warden.
-     */
     public void seedDefaultUsers() {
         if (countUsers() > 0) return;
 
-        Integer firstHostelId = getFirstHostelId();
+        Integer boysId = getHostelIdByType("Boys");
+        Integer girlsId = getHostelIdByType("Girls");
 
         String sql = "INSERT INTO User (username, password, role, hostel_id) VALUES (?, ?, ?, ?)";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            // Admin user
+            // Admin
             ps.setString(1, "admin");
             ps.setString(2, "admin123");
             ps.setString(3, "admin");
             ps.setNull(4, Types.INTEGER);
             ps.executeUpdate();
 
-            // Warden user
-            ps.setString(1, "warden");
-            ps.setString(2, "warden");
-            ps.setString(3, "warden");
-            if (firstHostelId != null) {
-                ps.setInt(4, firstHostelId);
-            } else {
-                ps.setNull(4, Types.INTEGER);
+            // Boys warden
+            if (boysId != null) {
+                ps.setString(1, "boyswarden");
+                ps.setString(2, "boyswarden");
+                ps.setString(3, "warden");
+                ps.setInt(4, boysId);
+                ps.executeUpdate();
             }
-            ps.executeUpdate();
+
+            // Girls warden
+            if (girlsId != null) {
+                ps.setString(1, "girlswarden");
+                ps.setString(2, "girlswarden");
+                ps.setString(3, "warden");
+                ps.setInt(4, girlsId);
+                ps.executeUpdate();
+            }
 
         } catch (SQLException e) {
             e.printStackTrace();
@@ -67,22 +75,20 @@ public class UserDAO {
         try (Connection conn = DBConnection.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
-            if (rs.next()) {
-                return rs.getInt(1);
-            }
+            if (rs.next()) return rs.getInt(1);
         } catch (SQLException e) {
             e.printStackTrace();
         }
         return 0;
     }
 
-    private Integer getFirstHostelId() {
-        String sql = "SELECT hostel_id FROM Hostel LIMIT 1";
+    private Integer getHostelIdByType(String type) {
+        String sql = "SELECT hostel_id FROM Hostel WHERE type = ? LIMIT 1";
         try (Connection conn = DBConnection.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-            if (rs.next()) {
-                return rs.getInt("hostel_id");
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, type);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getInt("hostel_id");
             }
         } catch (SQLException e) {
             e.printStackTrace();

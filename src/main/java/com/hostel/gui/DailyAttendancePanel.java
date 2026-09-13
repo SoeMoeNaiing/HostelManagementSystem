@@ -17,16 +17,18 @@ public class DailyAttendancePanel extends JPanel {
     private JComboBox<String> monthCombo;
     private JComboBox<Integer> yearCombo;
     private JButton loadBtn;
+    private String hostelType;
 
     private static final Color PRIMARY_COLOR = new Color(33, 97, 140);
     private static final Color BACKGROUND_COLOR = Color.WHITE;
 
-    public DailyAttendancePanel() {
+    public DailyAttendancePanel(String hostelType) {
+        this.hostelType = hostelType;
         attendanceDAO = new AttendanceDAO();
         setLayout(new BorderLayout());
         setBackground(BACKGROUND_COLOR);
 
-        // Title bar
+        // ----- Title bar -----
         JPanel titleBar = new JPanel(new BorderLayout());
         titleBar.setBackground(PRIMARY_COLOR);
         titleBar.setBorder(new EmptyBorder(10, 20, 10, 20));
@@ -35,25 +37,18 @@ public class DailyAttendancePanel extends JPanel {
         title.setForeground(Color.WHITE);
         titleBar.add(title, BorderLayout.WEST);
 
-        // Control panel
+        // ----- Control panel -----
         JPanel controlPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 8));
         controlPanel.setBackground(BACKGROUND_COLOR);
 
-        // Day combo
         dayCombo = new JComboBox<>();
-        for (int d = 1; d <= 31; d++) {
-            dayCombo.addItem(d);
-        }
+        for (int d = 1; d <= 31; d++) dayCombo.addItem(d);
         dayCombo.setSelectedItem(LocalDate.now().getDayOfMonth());
 
-        // Month combo
         monthCombo = new JComboBox<>();
-        for (Month m : Month.values()) {
-            monthCombo.addItem(m.toString());
-        }
+        for (Month m : Month.values()) monthCombo.addItem(m.toString());
         monthCombo.setSelectedItem(LocalDate.now().getMonth().toString());
 
-        // Year combo (only 2026 and current+1)
         yearCombo = new JComboBox<>();
         int currentYear = LocalDate.now().getYear();
         yearCombo.addItem(currentYear);
@@ -71,7 +66,13 @@ public class DailyAttendancePanel extends JPanel {
         controlPanel.add(yearCombo);
         controlPanel.add(loadBtn);
 
-        // Table
+        // ----- Top panel (title + control) -----
+        JPanel topPanel = new JPanel(new BorderLayout());
+        topPanel.setBackground(BACKGROUND_COLOR);
+        topPanel.add(titleBar, BorderLayout.NORTH);
+        topPanel.add(controlPanel, BorderLayout.SOUTH);
+
+        // ----- Table -----
         String[] cols = {"Student ID", "Name", "Status", "Remark"};
         tableModel = new DefaultTableModel(cols, 0);
         table = new JTable(tableModel);
@@ -80,9 +81,9 @@ public class DailyAttendancePanel extends JPanel {
         JScrollPane scrollPane = new JScrollPane(table);
         scrollPane.setBorder(new EmptyBorder(5, 10, 10, 10));
 
-        add(titleBar, BorderLayout.NORTH);
-        add(controlPanel, BorderLayout.CENTER);
-        add(scrollPane, BorderLayout.SOUTH);
+        // ----- Assemble -----
+        add(topPanel, BorderLayout.NORTH);
+        add(scrollPane, BorderLayout.CENTER);
     }
 
     private void loadDailyData() {
@@ -91,16 +92,16 @@ public class DailyAttendancePanel extends JPanel {
         int year = (int) yearCombo.getSelectedItem();
         int monthNumber = Month.valueOf(monthName.toUpperCase()).getValue();
 
-        // Validate date
         try {
-            LocalDate date = LocalDate.of(year, monthNumber, day);
+            LocalDate.of(year, monthNumber, day);
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, "Invalid date selected.", "Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
+
         String dateStr = String.format("%04d-%02d-%02d", year, monthNumber, day);
-        List<Object[]> data = attendanceDAO.getDailyAttendance(dateStr);
+        List<Object[]> data = attendanceDAO.getDailyAttendance(dateStr, hostelType);
         tableModel.setRowCount(0);
         for (Object[] row : data) {
             tableModel.addRow(row);

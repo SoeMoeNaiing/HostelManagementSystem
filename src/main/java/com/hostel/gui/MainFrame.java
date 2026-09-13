@@ -95,15 +95,17 @@ public class MainFrame extends JFrame {
             return;
         }
 
-        String role = userDAO.authenticate(username, password);
-        if (role != null) {
-            new DashboardFrame().setVisible(true);
+        Object[] user = userDAO.authenticateAndGetUser(username, password);
+        if (user != null) {
+            String role = (String) user[0];
+            Integer hostelId = (Integer) user[1];
+            String hostelType = (String) user[2];
+            new DashboardFrame(role, hostelId, hostelType).setVisible(true);
             dispose();
         } else {
             JOptionPane.showMessageDialog(this, "Invalid username or password.", "Login Failed", JOptionPane.ERROR_MESSAGE);
         }
     }
-
     private JButton createModernButton(String text, Color bg) {
         JButton button = new JButton(text);
         button.setBackground(bg);

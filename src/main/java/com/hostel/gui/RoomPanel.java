@@ -18,8 +18,11 @@ public class RoomPanel extends JPanel {
     private JButton editRoomBtn;
     private JButton deleteRoomBtn;
     private Runnable onStudentDataChanged;
+    private Integer hostelId;
 
-    public RoomPanel() {
+    public RoomPanel(Integer hostelId) {
+        this.hostelId = hostelId;
+
         roomDAO = new RoomDAO();
         setLayout(new BorderLayout());
         setBackground(Color.WHITE);
@@ -66,6 +69,21 @@ public class RoomPanel extends JPanel {
         scrollPane.getViewport().setBackground(Color.WHITE);
         scrollPane.getVerticalScrollBar().setUnitIncrement(20);
         add(scrollPane, BorderLayout.CENTER);
+        // Click on blank space in the grid → deselect any selected card
+        cardGrid.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (e.getSource() == cardGrid) {
+                    if (selectedCard != null) {
+                        selectedCard.setSelected(false);
+                        selectedCard = null;
+                    }
+                    selectedRoomId = -1;
+                    editRoomBtn.setEnabled(false);
+                    deleteRoomBtn.setEnabled(false);
+                }
+            }
+        });
 
         // Actions
         addRoomBtn.addActionListener(e -> openAddRoomDialog());
@@ -97,7 +115,7 @@ public class RoomPanel extends JPanel {
             JOptionPane.showMessageDialog(this, "Please select a room first.");
             return;
         }
-        List<Object[]> rooms = roomDAO.getAllRooms();
+        List<Object[]> rooms = roomDAO.getAllRooms(hostelId);
         for (Object[] r : rooms) {
             int id = (int) r[0];
             if (id == selectedRoomId) {
@@ -149,7 +167,7 @@ public class RoomPanel extends JPanel {
             JOptionPane.showMessageDialog(this, "Please select a room first.");
             return;
         }
-        List<Object[]> rooms = roomDAO.getAllRooms();
+        List<Object[]> rooms = roomDAO.getAllRooms(hostelId);
         for (Object[] r : rooms) {
             int id = (int) r[0];
             if (id == selectedRoomId) {
@@ -174,7 +192,7 @@ public class RoomPanel extends JPanel {
         deleteRoomBtn.setEnabled(false);
 
         cardGrid.removeAll();
-        List<Object[]> rooms = roomDAO.getAllRooms();
+        List<Object[]> rooms = roomDAO.getAllRooms(hostelId);
         for (Object[] r : rooms) {
             int roomId = (int) r[0];
             String roomNumber = (String) r[1];

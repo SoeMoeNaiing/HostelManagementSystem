@@ -12,17 +12,18 @@ public class StudentPanel extends JPanel {
     private DefaultTableModel tableModel;
     private StudentDAO studentDAO;
     private Runnable onStudentDataChanged;
+    private String hostelType;
 
     private static final Color PRIMARY_COLOR = new Color(33, 97, 140);
     private static final Color DANGER_COLOR = new Color(180, 50, 50);
     private static final Color BACKGROUND_COLOR = Color.WHITE;
 
-    public StudentPanel() {
+    public StudentPanel(String hostelType) {
+        this.hostelType = hostelType;
         studentDAO = new StudentDAO();
         setLayout(new BorderLayout());
         setBackground(BACKGROUND_COLOR);
 
-        // Title bar
         JPanel titlePanel = new JPanel(new BorderLayout());
         titlePanel.setBackground(PRIMARY_COLOR);
         titlePanel.setBorder(new EmptyBorder(10, 20, 10, 20));
@@ -31,7 +32,6 @@ public class StudentPanel extends JPanel {
         titleLabel.setForeground(Color.WHITE);
         titlePanel.add(titleLabel, BorderLayout.WEST);
 
-        // Button toolbar
         JPanel buttonBar = new JPanel(new FlowLayout(FlowLayout.LEFT));
         buttonBar.setBackground(BACKGROUND_COLOR);
         buttonBar.setBorder(new EmptyBorder(5, 10, 5, 10));
@@ -47,7 +47,6 @@ public class StudentPanel extends JPanel {
         buttonBar.add(detailsButton);
         buttonBar.add(refreshButton);
 
-        // Table
         String[] columnNames = {"ID", "Name", "Gender", "Year", "Major", "Phone"};
         tableModel = new DefaultTableModel(columnNames, 0);
         table = new JTable(tableModel);
@@ -57,7 +56,6 @@ public class StudentPanel extends JPanel {
         JScrollPane scrollPane = new JScrollPane(table);
         scrollPane.setBorder(new EmptyBorder(5, 10, 10, 10));
 
-        // Assemble
         JPanel northPanel = new JPanel(new BorderLayout());
         northPanel.setBackground(BACKGROUND_COLOR);
         northPanel.add(titlePanel, BorderLayout.NORTH);
@@ -65,7 +63,6 @@ public class StudentPanel extends JPanel {
         add(northPanel, BorderLayout.NORTH);
         add(scrollPane, BorderLayout.CENTER);
 
-        // Actions
         addButton.addActionListener(e -> openAddDialog());
         editButton.addActionListener(e -> openEditDialog());
         deleteButton.addActionListener(e -> deleteSelectedStudent());
@@ -75,14 +72,13 @@ public class StudentPanel extends JPanel {
         loadStudents();
     }
 
-    // This method will be called by DashboardFrame to set the callback
     public void setOnStudentDataChanged(Runnable callback) {
         this.onStudentDataChanged = callback;
     }
 
     private void loadStudents() {
         tableModel.setRowCount(0);
-        List<Object[]> students = studentDAO.getAllStudents();
+        List<Object[]> students = studentDAO.getAllStudents(hostelType);
         for (Object[] row : students) {
             tableModel.addRow(row);
         }
