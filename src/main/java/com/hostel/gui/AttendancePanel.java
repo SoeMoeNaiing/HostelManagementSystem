@@ -9,19 +9,16 @@ public class AttendancePanel extends JPanel {
     private AttendanceDAO attendanceDAO;
     private Object[] currentStudent;
     private JLabel nameLabel, idLabel, infoLabel;
-    private JButton presentBtn, leaveBtn, absentBtn;
-    private String remark = null;
+    private JButton presentBtn, absentBtn;
     private String hostelType;
 
     private static final Color PRIMARY_COLOR = new Color(33, 97, 140);
     private static final Color SUCCESS_COLOR = new Color(46, 204, 113);
     private static final Color DANGER_COLOR = new Color(180, 50, 50);
-    private static final Color LEAVE_COLOR = new Color(255, 165, 0);
     private static final Color BACKGROUND_COLOR = Color.WHITE;
 
     public AttendancePanel(String hostelType) {
         this.hostelType = hostelType;
-
         attendanceDAO = new AttendanceDAO();
         setLayout(new BorderLayout());
         setBackground(BACKGROUND_COLOR);
@@ -40,7 +37,6 @@ public class AttendancePanel extends JPanel {
         dateLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
         titleBar.add(dateLabel, BorderLayout.EAST);
 
-        // Card panel
         JPanel cardPanel = new JPanel(new GridBagLayout());
         cardPanel.setBackground(BACKGROUND_COLOR);
         cardPanel.setBorder(new EmptyBorder(30, 30, 30, 30));
@@ -73,25 +69,14 @@ public class AttendancePanel extends JPanel {
         card.add(Box.createVerticalStrut(20));
 
         presentBtn = createModernButton("✔ Present", SUCCESS_COLOR);
-        leaveBtn = createModernButton("✚ Leave", LEAVE_COLOR);
         absentBtn = createModernButton("✘ Absent", DANGER_COLOR);
 
         presentBtn.addActionListener(e -> markCurrent("Present"));
-
-        leaveBtn.addActionListener(e -> {
-            String input = JOptionPane.showInputDialog(this, "Enter leave reason:", "Leave Remark", JOptionPane.PLAIN_MESSAGE);
-            if (input != null) {
-                remark = input.trim();
-                markCurrent("Leave");
-            }
-        });
-
         absentBtn.addActionListener(e -> markCurrent("Absent"));
 
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 0));
         buttonPanel.setBackground(new Color(245, 248, 250));
         buttonPanel.add(presentBtn);
-        buttonPanel.add(leaveBtn);
         buttonPanel.add(absentBtn);
         card.add(buttonPanel);
 
@@ -110,25 +95,22 @@ public class AttendancePanel extends JPanel {
             idLabel.setText("");
             infoLabel.setText("");
             presentBtn.setEnabled(false);
-            leaveBtn.setEnabled(false);
             absentBtn.setEnabled(false);
             return;
         }
         presentBtn.setEnabled(true);
-        leaveBtn.setEnabled(true);
         absentBtn.setEnabled(true);
         nameLabel.setText((String) currentStudent[1]);
         idLabel.setText("ID: " + currentStudent[0]);
         infoLabel.setText(currentStudent[2] + " | " + currentStudent[3] + " | " + currentStudent[4]);
-        remark = null;
     }
 
     private void markCurrent(String status) {
         if (currentStudent == null) return;
         String studentId = (String) currentStudent[0];
-        boolean ok = attendanceDAO.markAttendance(studentId, status, remark);
+        // Silent mark — no popup, no remark for Present/Absent
+        boolean ok = attendanceDAO.markAttendance(studentId, status, null);
         if (ok) {
-            JOptionPane.showMessageDialog(this, "Marked " + status + " for " + currentStudent[1]);
             loadNextStudent();
         } else {
             JOptionPane.showMessageDialog(this, "Failed to mark attendance.", "Error", JOptionPane.ERROR_MESSAGE);

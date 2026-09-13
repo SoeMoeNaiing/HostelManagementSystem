@@ -6,21 +6,45 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.util.List;
-
+import com.hostel.dao.AttendanceDAO;
 public class StudentPanel extends JPanel {
     private JTable table;
     private DefaultTableModel tableModel;
     private StudentDAO studentDAO;
     private Runnable onStudentDataChanged;
     private String hostelType;
+    private AttendanceDAO attendanceDAO;
 
     private static final Color PRIMARY_COLOR = new Color(33, 97, 140);
     private static final Color DANGER_COLOR = new Color(180, 50, 50);
     private static final Color BACKGROUND_COLOR = Color.WHITE;
+    private void markLeaveForSelectedStudent() {
+        int selectedRow = table.getSelectedRow();
+        if (selectedRow == -1) {
+            JOptionPane.showMessageDialog(this, "Please select a student first.");
+            return;
+        }
+        String studentId = (String) tableModel.getValueAt(selectedRow, 0);
+        String name = (String) tableModel.getValueAt(selectedRow, 1);
 
+        JFrame parent = (JFrame) SwingUtilities.getWindowAncestor(this);
+        LeaveReasonDialog dialog = new LeaveReasonDialog(parent, name);
+        dialog.setVisible(true);
+        if (dialog.isConfirmed()) {
+            boolean ok = attendanceDAO.markAttendance(studentId, "Leave", dialog.getReason());
+            if (ok) {
+                JOptionPane.showMessageDialog(this, name + " marked on Leave for today.");
+                if (onStudentDataChanged != null) onStudentDataChanged.run();
+            } else {
+                JOptionPane.showMessageDialog(this, "Failed to mark leave. The student may already be marked for today.",
+                        "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
     public StudentPanel(String hostelType) {
         this.hostelType = hostelType;
         studentDAO = new StudentDAO();
+        attendanceDAO = new AttendanceDAO();
         setLayout(new BorderLayout());
         setBackground(BACKGROUND_COLOR);
 
@@ -39,11 +63,13 @@ public class StudentPanel extends JPanel {
         JButton addButton = createModernButton("+ Add Student", PRIMARY_COLOR);
         JButton editButton = createModernButton("✎ Edit", PRIMARY_COLOR);
         JButton deleteButton = createModernButton("✕ Delete", DANGER_COLOR);
+        JButton markLeaveButton = createModernButton("✚ Mark Leave", new Color(255, 165, 0));
         JButton refreshButton = createModernButton("↻ Refresh", Color.GRAY);
         JButton detailsButton = createModernButton("⋯ More Details", new Color(70, 130, 180));
         buttonBar.add(addButton);
         buttonBar.add(editButton);
         buttonBar.add(deleteButton);
+        buttonBar.add(markLeaveButton);
         buttonBar.add(detailsButton);
         buttonBar.add(refreshButton);
 
@@ -66,6 +92,7 @@ public class StudentPanel extends JPanel {
         addButton.addActionListener(e -> openAddDialog());
         editButton.addActionListener(e -> openEditDialog());
         deleteButton.addActionListener(e -> deleteSelectedStudent());
+        markLeaveButton.addActionListener(e -> markLeaveForSelectedStudent());
         refreshButton.addActionListener(e -> loadStudents());
         detailsButton.addActionListener(e -> showDetails());
 
@@ -86,7 +113,7 @@ public class StudentPanel extends JPanel {
 
     private void openAddDialog() {
         JFrame parent = (JFrame) SwingUtilities.getWindowAncestor(this);
-        StudentFormDialog dialog = new StudentFormDialog(parent);
+        StudentFormDialog dialog = new StudentFormDialog(parent, hostelType);
         dialog.setVisible(true);
         if (dialog.isConfirmed()) {
             boolean success = studentDAO.insertStudent(
@@ -136,7 +163,8 @@ public class StudentPanel extends JPanel {
                 (String) studentData[7],
                 (String) studentData[8],
                 (String) studentData[9],
-                (String) studentData[10]
+                (String) studentData[10],
+                hostelType        // <-- new parameter
         );
         dialog.setVisible(true);
         if (dialog.isConfirmed()) {

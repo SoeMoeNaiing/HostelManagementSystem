@@ -14,11 +14,14 @@ public class RoomDetailsDialog extends JDialog {
     private int roomId;
     private Runnable refreshCallback;    // to refresh the room panel after changes
 
-    public RoomDetailsDialog(JFrame parent, int roomId, String roomTitle, Runnable refreshCallback) {
+    private String hostelType;
+
+    public RoomDetailsDialog(JFrame parent, int roomId, String roomTitle, Runnable refreshCallback, String hostelType) {
         super(parent, "Room " + roomTitle, true);
         this.roomId = roomId;
         this.roomDAO = new RoomDAO();
         this.refreshCallback = refreshCallback;
+        this.hostelType = hostelType;
         initUI();
         loadAssignedStudents();
     }
@@ -76,11 +79,11 @@ public class RoomDetailsDialog extends JDialog {
 
     private void openAssignDialog() {
         JFrame parent = (JFrame) SwingUtilities.getWindowAncestor(this);
-        AssignStudentDialog dialog = new AssignStudentDialog(parent, roomId);
+        AssignStudentDialog dialog = new AssignStudentDialog(parent, roomId, hostelType);
         dialog.setVisible(true);
         if (dialog.isStudentAssigned()) {
             loadAssignedStudents();
-            if (refreshCallback != null) refreshCallback.run();   // refresh room cards
+            if (refreshCallback != null) refreshCallback.run();
             JOptionPane.showMessageDialog(this, "Student assigned successfully.");
         }
     }

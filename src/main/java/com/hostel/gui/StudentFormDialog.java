@@ -5,7 +5,6 @@ import javax.swing.border.EmptyBorder;
 import java.awt.*;
 
 public class StudentFormDialog extends JDialog {
-    // Input fields
     private JTextField studentIdField, nameField, yearField, majorField, emailField, phoneField,
             guardianNameField, guardianPhoneField, addressField, nrcField;
     private JComboBox<String> genderCombo;
@@ -13,36 +12,35 @@ public class StudentFormDialog extends JDialog {
     private boolean confirmed = false;
 
     // Constructor for ADD
-    public StudentFormDialog(JFrame parent) {
+    public StudentFormDialog(JFrame parent, String hostelType) {
         super(parent, "Add New Student", true);
-        initComponents(parent, null, null, null, null, null, null, null, null, null, null, null, 0);
+        initComponents(parent, null, null, null, null, null, null, null, null, null, null, null, 0, hostelType);
     }
 
-    // Constructor for EDIT (studentId is the existing roll number, pre-filled and disabled)
+    // Constructor for EDIT
     public StudentFormDialog(JFrame parent, String studentId, String name, String gender,
                              String year, String major, String email, String phone,
-                             String guardianName, String guardianPhone, String address, String nrc) {
+                             String guardianName, String guardianPhone, String address, String nrc,
+                             String hostelType) {
         super(parent, "Edit Student", true);
         initComponents(parent, studentId, name, gender, year, major, email, phone,
-                guardianName, guardianPhone, address, nrc, 1);   // 1 = edit mode
+                guardianName, guardianPhone, address, nrc, 1, hostelType);
     }
 
     private void initComponents(JFrame parent, String studentId, String name, String gender,
                                 String year, String major, String email, String phone,
                                 String guardianName, String guardianPhone, String address,
-                                String nrc, int mode) {
+                                String nrc, int mode, String hostelType) {
         JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
         mainPanel.setBorder(new EmptyBorder(15, 15, 15, 15));
         mainPanel.setBackground(Color.WHITE);
 
-        // Form panel
         JPanel formPanel = new JPanel(new GridBagLayout());
         formPanel.setBackground(Color.WHITE);
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(5, 5, 5, 5);
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
-        // Create fields
         studentIdField = new JTextField(15);
         nameField = new JTextField(20);
         genderCombo = new JComboBox<>(new String[]{"Male", "Female"});
@@ -55,8 +53,15 @@ public class StudentFormDialog extends JDialog {
         addressField = new JTextField(20);
         nrcField = new JTextField(20);
 
+        // If hostelType is provided, lock the gender combo
+        if (hostelType != null) {
+            String lockedGender = "Boys".equalsIgnoreCase(hostelType) ? "Male" : "Female";
+            genderCombo.setSelectedItem(lockedGender);
+            genderCombo.setEnabled(false);
+        }
+
         // Pre-fill if editing
-        if (mode == 1) {  // edit
+        if (mode == 1) {
             studentIdField.setText(studentId);
             studentIdField.setEditable(false);
             studentIdField.setBackground(new Color(240, 240, 240));
@@ -72,7 +77,6 @@ public class StudentFormDialog extends JDialog {
             nrcField.setText(nrc);
         }
 
-        // Add rows to form (no room field)
         int row = 0;
         addFormRow(formPanel, gbc, "Student ID:", studentIdField, row++);
         addFormRow(formPanel, gbc, "Name:", nameField, row++);
@@ -86,14 +90,12 @@ public class StudentFormDialog extends JDialog {
         addFormRow(formPanel, gbc, "Address:", addressField, row++);
         addFormRow(formPanel, gbc, "NRC:", nrcField, row++);
 
-        // Button panel
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         buttonPanel.setBackground(Color.WHITE);
         JButton saveButton = createModernButton("Save", new Color(33, 97, 140));
         JButton cancelButton = createModernButton("Cancel", Color.GRAY);
 
         saveButton.addActionListener(e -> {
-            // Validation: Student ID and Name are required
             if (studentIdField.getText().trim().isEmpty() || nameField.getText().trim().isEmpty()) {
                 JOptionPane.showMessageDialog(this,
                         "Student ID and Name are required!",
@@ -142,9 +144,7 @@ public class StudentFormDialog extends JDialog {
         return btn;
     }
 
-    // Getters
     public boolean isConfirmed() { return confirmed; }
-
     public String getStudentId() { return studentIdField.getText().trim(); }
     public String getStudentName() { return nameField.getText().trim(); }
     public String getGender() { return (String) genderCombo.getSelectedItem(); }

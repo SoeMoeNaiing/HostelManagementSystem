@@ -19,9 +19,11 @@ public class RoomPanel extends JPanel {
     private JButton deleteRoomBtn;
     private Runnable onStudentDataChanged;
     private Integer hostelId;
+    private String hostelType;
 
-    public RoomPanel(Integer hostelId) {
+    public RoomPanel(Integer hostelId , String hostelType) {
         this.hostelId = hostelId;
+        this.hostelType = hostelType;
 
         roomDAO = new RoomDAO();
         setLayout(new BorderLayout());
@@ -175,8 +177,8 @@ public class RoomPanel extends JPanel {
                 String hostelName = (String) r[4];
                 JFrame parent = (JFrame) SwingUtilities.getWindowAncestor(RoomPanel.this);
                 RoomDetailsDialog dialog = new RoomDetailsDialog(parent, id,
-                        roomNumber + " (" + hostelName + ")", this::refreshRoomCards);
-                dialog.setVisible(true);
+                        roomNumber + " (" + hostelName + ")", this::refreshRoomCards, hostelType);
+                    dialog.setVisible(true);
                 return;
             }
         }

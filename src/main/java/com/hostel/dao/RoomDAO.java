@@ -94,21 +94,29 @@ public class RoomDAO {
      * Get all students who are NOT assigned to any room.
      * Returns list of Object[]: student_id, student_name, year, major, phone_number.
      */
-    public List<Object[]> getUnassignedStudents() {
+    public List<Object[]> getUnassignedStudents(String hostelType) {
         List<Object[]> students = new ArrayList<>();
         String sql = "SELECT student_id, student_name, year, major, phone_number " +
-                "FROM Student WHERE room_id IS NULL ORDER BY student_name";
+                "FROM Student WHERE room_id IS NULL ";
+        if (hostelType != null) {
+            sql += " AND gender = ? ";
+        }
+        sql += " ORDER BY student_name";
         try (Connection conn = DBConnection.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-            while (rs.next()) {
-                students.add(new Object[]{
-                        rs.getString("student_id"),
-                        rs.getString("student_name"),
-                        rs.getString("year"),
-                        rs.getString("major"),
-                        rs.getString("phone_number")
-                });
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            if (hostelType != null) {
+                ps.setString(1, "Boys".equalsIgnoreCase(hostelType) ? "Male" : "Female");
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    students.add(new Object[]{
+                            rs.getString("student_id"),
+                            rs.getString("student_name"),
+                            rs.getString("year"),
+                            rs.getString("major"),
+                            rs.getString("phone_number")
+                    });
+                }
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -124,6 +132,36 @@ public class RoomDAO {
         if (isRoomFull(roomId)) {
             return false;
         }
+        // Safety check: student gender must match hostel type
+        String checkSql = "SELECT s.gender, h.type FROM Student s, Room r " +
+                "JOIN Hostel h ON r.hostel_id = h.hostel_id " +
+                "WHERE s.student_id = ? AND r.room_id = ?";
+        // simpler with two queries
+        String genderSql = "SELECT gender FROM Student WHERE student_id = ?";
+        String hostelTypeSql = "SELECT h.type FROM Room r JOIN Hostel h ON r.hostel_id = h.hostel_id WHERE r.room_id = ?";
+        try (Connection conn = DBConnection.getConnection()) {
+            String gender = null;
+            try (PreparedStatement ps = conn.prepareStatement(genderSql)) {
+                ps.setString(1, studentId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) gender = rs.getString("gender");
+                }
+            }
+            String hostelType = null;
+            try (PreparedStatement ps = conn.prepareStatement(hostelTypeSql)) {
+                ps.setInt(1, roomId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) hostelType = rs.getString("type");
+                }
+            }
+            if (gender == null || hostelType == null) return false;
+            if ("Boys".equalsIgnoreCase(hostelType) && !"Male".equalsIgnoreCase(gender)) return false;
+            if ("Girls".equalsIgnoreCase(hostelType) && !"Female".equalsIgnoreCase(gender)) return false;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+
         String sql = "UPDATE Student SET room_id = ? WHERE student_id = ?";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -135,7 +173,6 @@ public class RoomDAO {
             return false;
         }
     }
-
     /**
      * Unassign a student from any room (set room_id to NULL).
      */

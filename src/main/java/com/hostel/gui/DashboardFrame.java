@@ -47,7 +47,7 @@ public class DashboardFrame extends JFrame {
 
         // Pass filters to panels
         studentPanel = new StudentPanel(hostelType);
-        roomPanel = new RoomPanel(hostelId);
+        roomPanel = new RoomPanel(hostelId, hostelType);
         attendancePanel = new AttendancePanel(hostelType);
         reportPanel = new DailyAttendancePanel(hostelType);
         studentReportPanel = new StudentReportPanel(hostelType);

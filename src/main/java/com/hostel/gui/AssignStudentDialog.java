@@ -13,10 +13,12 @@ public class AssignStudentDialog extends JDialog {
     private RoomDAO roomDAO;
     private int roomId;
     private boolean studentAssigned = false;
+    private String hostelType;
 
-    public AssignStudentDialog(JFrame parent, int roomId) {
+    public AssignStudentDialog(JFrame parent, int roomId, String hostelType) {
         super(parent, "Assign Student", true);
         this.roomId = roomId;
+        this.hostelType = hostelType;
         this.roomDAO = new RoomDAO();
         initUI();
         loadUnassignedStudents();
@@ -59,12 +61,11 @@ public class AssignStudentDialog extends JDialog {
 
     private void loadUnassignedStudents() {
         tableModel.setRowCount(0);
-        List<Object[]> unassigned = roomDAO.getUnassignedStudents();
+        List<Object[]> unassigned = roomDAO.getUnassignedStudents(hostelType);
         for (Object[] s : unassigned) {
             tableModel.addRow(s);
         }
     }
-
     private void assignSelectedStudent() {
         int row = studentTable.getSelectedRow();
         if (row == -1) {
