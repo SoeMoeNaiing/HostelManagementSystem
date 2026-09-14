@@ -114,7 +114,10 @@ public class DashboardFrame extends JFrame {
 
         sidebar.add(createNavButton("📊 Attendance Log", "ATTENDANCE LOG"));
         sidebar.add(Box.createRigidArea(new Dimension(0, 6)));
-        sidebar.add(createNavButton("🧾 Student Report", "STUDENT_REPORT"));
+
+        JButton studentReportNavBtn = createNavButton("🧾 Student Report", "STUDENT_REPORT");
+        studentReportNavBtn.addActionListener(e -> studentReportPanel.loadStudents());
+        sidebar.add(studentReportNavBtn);
 
         sidebar.add(Box.createVerticalGlue());
 

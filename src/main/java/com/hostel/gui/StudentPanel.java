@@ -102,7 +102,7 @@ public class StudentPanel extends JPanel {
         this.onStudentDataChanged = callback;
     }
 
-    private void loadStudents() {
+    public void loadStudents() {
         tableModel.setRowCount(0);
         List<Object[]> students = studentDAO.getAllStudents(hostelType);
         for (Object[] row : students) {

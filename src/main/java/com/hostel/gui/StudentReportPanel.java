@@ -174,7 +174,7 @@ public class StudentReportPanel extends JPanel {
         return label;
     }
 
-    private void loadStudents() {
+    void loadStudents() {
         studentCombo.removeAllItems();
         studentMap.clear();
         List<Object[]> students = studentDAO.getAllStudents(hostelType);
