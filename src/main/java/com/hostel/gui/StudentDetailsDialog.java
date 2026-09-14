@@ -1,6 +1,7 @@
 package com.hostel.gui;
 
 import com.hostel.dao.RoomDAO;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
@@ -13,20 +14,21 @@ public class StudentDetailsDialog extends JDialog {
         setLayout(new BorderLayout());
 
         JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
-        mainPanel.setBorder(new EmptyBorder(15, 15, 15, 15));
-        mainPanel.setBackground(Color.WHITE);
+        mainPanel.setBorder(new EmptyBorder(20, 25, 20, 25));
+        mainPanel.setBackground(UITheme.WHITE);
 
-        // Title
+        // ----- Title -----
         JLabel titleLabel = new JLabel("Student Details");
-        titleLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
-        titleLabel.setForeground(new Color(33, 97, 140));
+        titleLabel.setFont(UITheme.HEADER);
+        titleLabel.setForeground(UITheme.PRIMARY);
+        titleLabel.setBorder(new EmptyBorder(0, 0, 10, 0));
         mainPanel.add(titleLabel, BorderLayout.NORTH);
 
-        // Details panel
+        // ----- Details grid -----
         JPanel detailsPanel = new JPanel(new GridBagLayout());
-        detailsPanel.setBackground(Color.WHITE);
+        detailsPanel.setBackground(UITheme.WHITE);
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(5, 10, 5, 10);
+        gbc.insets = new Insets(6, 10, 6, 10);
         gbc.anchor = GridBagConstraints.WEST;
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
@@ -42,9 +44,9 @@ public class StudentDetailsDialog extends JDialog {
         String guardianPhone = (String) studentData[8];
         String address = (String) studentData[9];
         String nrc = (String) studentData[10];
-        Integer roomId = (Integer) studentData[11];   // can be null
+        Integer roomId = (Integer) studentData[11];
 
-        // Room display (if assigned)
+        // Resolve room display
         String roomDisplay = "Not Assigned";
         if (roomId != null) {
             RoomDAO roomDAO = new RoomDAO();
@@ -70,20 +72,12 @@ public class StudentDetailsDialog extends JDialog {
 
         mainPanel.add(detailsPanel, BorderLayout.CENTER);
 
-        // Close button
-        JButton closeButton = new JButton("Close");
-        closeButton.setBackground(new Color(33, 97, 140));
-        closeButton.setForeground(Color.WHITE);
-        closeButton.setFont(new Font("SansSerif", Font.BOLD, 13));
-        closeButton.setFocusPainted(false);
-        closeButton.setBorderPainted(false);
-        closeButton.setOpaque(true);
-        closeButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        closeButton.setBorder(new EmptyBorder(8, 20, 8, 20));
+        // ----- Close button -----
+        JButton closeButton = UITheme.createButton("Close", UITheme.PRIMARY);
         closeButton.addActionListener(e -> dispose());
 
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        buttonPanel.setBackground(Color.WHITE);
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        buttonPanel.setBackground(UITheme.WHITE);
         buttonPanel.add(closeButton);
         mainPanel.add(buttonPanel, BorderLayout.SOUTH);
 
@@ -95,15 +89,18 @@ public class StudentDetailsDialog extends JDialog {
     private void addRow(JPanel panel, GridBagConstraints gbc, String label, String value, int row) {
         gbc.gridx = 0;
         gbc.gridy = row;
-        gbc.weightx = 0.3;
+        gbc.weightx = 0.35;
+
         JLabel lbl = new JLabel(label);
-        lbl.setFont(new Font("SansSerif", Font.BOLD, 13));
+        lbl.setFont(UITheme.BUTTON);
+        lbl.setForeground(UITheme.PRIMARY_DARK);
         panel.add(lbl, gbc);
 
         gbc.gridx = 1;
-        gbc.weightx = 0.7;
-        JLabel val = new JLabel(value);
-        val.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        gbc.weightx = 0.65;
+
+        JLabel val = new JLabel(value != null ? value : "-");
+        val.setFont(UITheme.BODY);
         panel.add(val, gbc);
     }
 }

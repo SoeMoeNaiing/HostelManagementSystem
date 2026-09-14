@@ -16,6 +16,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.io.File;
@@ -49,8 +50,6 @@ public class StudentReportPanel extends JPanel {
     private YearMonth currentYearMonth;
     private int currentPresent, currentAbsent, currentLeave;
 
-    private static final Color PRIMARY_COLOR = new Color(33, 97, 140);
-    private static final Color BACKGROUND_COLOR = Color.WHITE;
     private String hostelType;
 
     public StudentReportPanel(String hostelType) {
@@ -60,83 +59,119 @@ public class StudentReportPanel extends JPanel {
         studentMap = new LinkedHashMap<>();
 
         setLayout(new BorderLayout());
-        setBackground(BACKGROUND_COLOR);
+        setBackground(UITheme.BACKGROUND);
 
         // ----- Title bar -----
         JPanel titleBar = new JPanel(new BorderLayout());
-        titleBar.setBackground(PRIMARY_COLOR);
+        titleBar.setBackground(UITheme.PRIMARY);
         titleBar.setBorder(new EmptyBorder(10, 20, 10, 20));
         JLabel title = new JLabel("Student Monthly Report");
-        title.setFont(new java.awt.Font("SansSerif", java.awt.Font.BOLD, 18));
-        title.setForeground(Color.WHITE);
+        title.setFont(UITheme.TITLE);
+        title.setForeground(UITheme.WHITE);
         titleBar.add(title, BorderLayout.WEST);
 
         // ----- Control panel -----
         JPanel controlPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 12));
-        controlPanel.setBackground(BACKGROUND_COLOR);
+        controlPanel.setBackground(UITheme.BACKGROUND);
 
         studentCombo = new JComboBox<>();
+        studentCombo.setFont(UITheme.BODY);
+        studentCombo.setPreferredSize(new Dimension(220, UITheme.INPUT_H));
         loadStudents();
 
         monthCombo = new JComboBox<>();
         for (Month m : Month.values()) monthCombo.addItem(m.toString());
         monthCombo.setSelectedItem(LocalDate.now().getMonth().toString());
+        monthCombo.setFont(UITheme.BODY);
+        monthCombo.setPreferredSize(new Dimension(120, UITheme.INPUT_H));
 
         yearCombo = new JComboBox<>();
         int currentYear = LocalDate.now().getYear();
         yearCombo.addItem(currentYear);
         yearCombo.addItem(currentYear + 1);
         yearCombo.setSelectedItem(currentYear);
+        yearCombo.setFont(UITheme.BODY);
+        yearCombo.setPreferredSize(new Dimension(80, UITheme.INPUT_H));
 
-        generateBtn = createModernButton("Generate Report", PRIMARY_COLOR);
+        generateBtn = UITheme.createButton("Generate Report", UITheme.PRIMARY);
         generateBtn.addActionListener(e -> generateReport());
 
-        exportBtn = createModernButton("💾 Export to Excel", new Color(34, 139, 34));
+        exportBtn = UITheme.createButton("💾 Export to Excel", new Color(34, 139, 34));
         exportBtn.addActionListener(e -> exportToExcel());
         exportBtn.setEnabled(false);
 
-        controlPanel.add(new JLabel("Student:"));
+        controlPanel.add(createLabel("Student:"));
         controlPanel.add(studentCombo);
-        controlPanel.add(new JLabel("Month:"));
+        controlPanel.add(createLabel("Month:"));
         controlPanel.add(monthCombo);
-        controlPanel.add(new JLabel("Year:"));
+        controlPanel.add(createLabel("Year:"));
         controlPanel.add(yearCombo);
         controlPanel.add(generateBtn);
         controlPanel.add(exportBtn);
 
         // ----- Info label -----
         infoLabel = new JLabel(" ");
-        infoLabel.setFont(new java.awt.Font("SansSerif", java.awt.Font.PLAIN, 13));
-        infoLabel.setBorder(new EmptyBorder(5, 20, 5, 20));
+        infoLabel.setFont(UITheme.BODY);
+        infoLabel.setBorder(new EmptyBorder(6, 20, 6, 20));
         infoLabel.setForeground(new Color(60, 60, 60));
 
         JPanel infoPanel = new JPanel(new BorderLayout());
-        infoPanel.setBackground(new Color(245, 248, 250));
+        infoPanel.setBackground(UITheme.INFO_BG);
         infoPanel.add(infoLabel, BorderLayout.WEST);
 
         // ----- Table -----
         String[] cols = {"Date", "Day", "Status", "Remark"};
         tableModel = new DefaultTableModel(cols, 0) {
             @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
+            public boolean isCellEditable(int row, int column) { return false; }
         };
         table = new JTable(tableModel);
-        table.setRowHeight(25);
-        table.getTableHeader().setFont(new java.awt.Font("SansSerif", java.awt.Font.BOLD, 12));
+        table.setRowHeight(28);
+        table.setFont(UITheme.BODY);
+        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        table.getTableHeader().setFont(UITheme.BUTTON);
+        table.getTableHeader().setBackground(UITheme.PRIMARY);
+        table.getTableHeader().setForeground(UITheme.WHITE);
+        table.getTableHeader().setPreferredSize(new Dimension(0, 32));
+
+        // Color-code the Status column
+        table.getColumnModel().getColumn(2).setCellRenderer(new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable t, Object value, boolean isSelected,
+                                                           boolean hasFocus, int row, int column) {
+                Component c = super.getTableCellRendererComponent(t, value, isSelected, hasFocus, row, column);
+                String status = value == null ? "" : value.toString();
+                if (!isSelected) {
+                    switch (status) {
+                        case "Present":  c.setForeground(UITheme.SUCCESS); break;
+                        case "Absent":   c.setForeground(UITheme.DANGER); break;
+                        case "Leave":    c.setForeground(UITheme.WARNING); break;
+                        case "Unmarked": c.setForeground(Color.GRAY); break;
+                        default:         c.setForeground(Color.LIGHT_GRAY);
+                    }
+                }
+                return c;
+            }
+        });
+
         JScrollPane scrollPane = new JScrollPane(table);
         scrollPane.setBorder(new EmptyBorder(5, 15, 15, 15));
 
         // ----- Assemble -----
         JPanel topPanel = new JPanel(new BorderLayout());
-        topPanel.setBackground(BACKGROUND_COLOR);
+        topPanel.setBackground(UITheme.BACKGROUND);
         topPanel.add(titleBar, BorderLayout.NORTH);
         topPanel.add(controlPanel, BorderLayout.CENTER);
         topPanel.add(infoPanel, BorderLayout.SOUTH);
 
         add(topPanel, BorderLayout.NORTH);
         add(scrollPane, BorderLayout.CENTER);
+    }
+
+    private JLabel createLabel(String text) {
+        JLabel label = new JLabel(text);
+        label.setFont(UITheme.BODY);
+        return label;
     }
 
     private void loadStudents() {
@@ -169,7 +204,8 @@ public class StudentReportPanel extends JPanel {
 
         Object[] info = studentDAO.getStudentReportInfo(currentStudentId);
         if (info == null) {
-            JOptionPane.showMessageDialog(this, "Student not found.", "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Student not found.",
+                    "Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
         currentStudentName = (String) info[1];
@@ -246,8 +282,7 @@ public class StudentReportPanel extends JPanel {
         try (XSSFWorkbook workbook = new XSSFWorkbook()) {
             Sheet sheet = workbook.createSheet("Attendance Report");
 
-            // Styles - use fully qualified POI Font
-            // Styles
+            // ----- Styles -----
             CellStyle titleStyle = workbook.createCellStyle();
             XSSFFont titleFont = workbook.createFont();
             titleFont.setBold(true);
@@ -266,7 +301,10 @@ public class StudentReportPanel extends JPanel {
             headerStyle.setFont(headerFont);
             headerStyle.setFillForegroundColor(new XSSFColor(new byte[]{(byte)33, (byte)97, (byte)140}, null));
             headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-            headerStyle.setAlignment(HorizontalAlignment.CENTER);            int rowIdx = 0;
+            headerStyle.setAlignment(HorizontalAlignment.CENTER);
+
+            // ----- Content -----
+            int rowIdx = 0;
 
             Row titleRow = sheet.createRow(rowIdx++);
             Cell tc = titleRow.createCell(0);
@@ -331,18 +369,5 @@ public class StudentReportPanel extends JPanel {
         labelCell.setCellStyle(boldStyle);
         row.createCell(1).setCellValue(value);
         return rowIdx + 1;
-    }
-
-    private JButton createModernButton(String text, Color bg) {
-        JButton btn = new JButton(text);
-        btn.setBackground(bg);
-        btn.setForeground(Color.WHITE);
-        btn.setFont(new java.awt.Font("SansSerif", java.awt.Font.BOLD, 12));
-        btn.setFocusPainted(false);
-        btn.setBorderPainted(false);
-        btn.setOpaque(true);
-        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btn.setBorder(new EmptyBorder(8, 15, 8, 15));
-        return btn;
     }
 }

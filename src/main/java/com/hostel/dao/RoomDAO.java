@@ -173,6 +173,36 @@ public class RoomDAO {
             return false;
         }
     }
+    public List<Object[]> getAllRoomsWithOccupancy(Integer hostelId) {
+        List<Object[]> rooms = new ArrayList<>();
+        String sql = "SELECT r.room_id, r.room_number, r.floor_number, r.capacity, " +
+                "h.hostel_name, h.type, " +
+                "(SELECT COUNT(*) FROM Student s WHERE s.room_id = r.room_id) AS occupancy " +
+                "FROM Room r JOIN Hostel h ON r.hostel_id = h.hostel_id ";
+        if (hostelId != null) sql += " WHERE r.hostel_id = ? ";
+        sql += " ORDER BY r.floor_number, CAST(SUBSTRING(r.room_number, 2) AS UNSIGNED)";
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            if (hostelId != null) ps.setInt(1, hostelId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    rooms.add(new Object[]{
+                            rs.getInt("room_id"),
+                            rs.getString("room_number"),
+                            rs.getInt("floor_number"),
+                            rs.getInt("capacity"),
+                            rs.getString("hostel_name"),
+                            rs.getString("type"),
+                            rs.getInt("occupancy")
+                    });
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return rooms;
+    }
     /**
      * Unassign a student from any room (set room_id to NULL).
      */

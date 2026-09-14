@@ -32,35 +32,38 @@ public class StudentFormDialog extends JDialog {
                                 String guardianName, String guardianPhone, String address,
                                 String nrc, int mode, String hostelType) {
         JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
-        mainPanel.setBorder(new EmptyBorder(15, 15, 15, 15));
-        mainPanel.setBackground(Color.WHITE);
+        mainPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
+        mainPanel.setBackground(UITheme.WHITE);
 
         JPanel formPanel = new JPanel(new GridBagLayout());
-        formPanel.setBackground(Color.WHITE);
+        formPanel.setBackground(UITheme.WHITE);
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.insets = new Insets(6, 6, 6, 6);
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
-        studentIdField = new JTextField(15);
-        nameField = new JTextField(20);
+        // ----- Fields -----
+        studentIdField = createField(15);
+        nameField = createField(22);
         genderCombo = new JComboBox<>(new String[]{"Male", "Female"});
-        yearField = new JTextField(20);
-        majorField = new JTextField(20);
-        emailField = new JTextField(20);
-        phoneField = new JTextField(20);
-        guardianNameField = new JTextField(20);
-        guardianPhoneField = new JTextField(20);
-        addressField = new JTextField(20);
-        nrcField = new JTextField(20);
+        genderCombo.setFont(UITheme.BODY);
+        genderCombo.setPreferredSize(new Dimension(220, UITheme.INPUT_H));
+        yearField = createField(22);
+        majorField = createField(22);
+        emailField = createField(22);
+        phoneField = createField(22);
+        guardianNameField = createField(22);
+        guardianPhoneField = createField(22);
+        addressField = createField(22);
+        nrcField = createField(22);
 
-        // If hostelType is provided, lock the gender combo
+        // Lock gender if a warden is logged in
         if (hostelType != null) {
             String lockedGender = "Boys".equalsIgnoreCase(hostelType) ? "Male" : "Female";
             genderCombo.setSelectedItem(lockedGender);
             genderCombo.setEnabled(false);
         }
 
-        // Pre-fill if editing
+        // Pre-fill for edit
         if (mode == 1) {
             studentIdField.setText(studentId);
             studentIdField.setEditable(false);
@@ -90,10 +93,11 @@ public class StudentFormDialog extends JDialog {
         addFormRow(formPanel, gbc, "Address:", addressField, row++);
         addFormRow(formPanel, gbc, "NRC:", nrcField, row++);
 
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        buttonPanel.setBackground(Color.WHITE);
-        JButton saveButton = createModernButton("Save", new Color(33, 97, 140));
-        JButton cancelButton = createModernButton("Cancel", Color.GRAY);
+        // ----- Buttons -----
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        buttonPanel.setBackground(UITheme.WHITE);
+        JButton saveButton = UITheme.createButton("Save", UITheme.PRIMARY);
+        JButton cancelButton = UITheme.createButton("Cancel", UITheme.GRAY);
 
         saveButton.addActionListener(e -> {
             if (studentIdField.getText().trim().isEmpty() || nameField.getText().trim().isEmpty()) {
@@ -116,34 +120,36 @@ public class StudentFormDialog extends JDialog {
         add(mainPanel);
         pack();
         setLocationRelativeTo(parent);
+
+        // Focus first editable field
+        if (mode == 0) {
+            SwingUtilities.invokeLater(studentIdField::requestFocusInWindow);
+        } else {
+            SwingUtilities.invokeLater(nameField::requestFocusInWindow);
+        }
+    }
+
+    private JTextField createField(int columns) {
+        JTextField field = new JTextField(columns);
+        field.setFont(UITheme.BODY);
+        field.setPreferredSize(new Dimension(220, UITheme.INPUT_H));
+        return field;
     }
 
     private void addFormRow(JPanel panel, GridBagConstraints gbc, String labelText, Component field, int row) {
         gbc.gridx = 0;
         gbc.gridy = row;
-        gbc.weightx = 0.1;
+        gbc.weightx = 0.25;
         JLabel label = new JLabel(labelText);
-        label.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        label.setFont(UITheme.BODY);
         panel.add(label, gbc);
 
         gbc.gridx = 1;
-        gbc.weightx = 0.9;
+        gbc.weightx = 0.75;
         panel.add(field, gbc);
     }
 
-    private JButton createModernButton(String text, Color bg) {
-        JButton btn = new JButton(text);
-        btn.setBackground(bg);
-        btn.setForeground(Color.WHITE);
-        btn.setFont(new Font("SansSerif", Font.BOLD, 13));
-        btn.setFocusPainted(false);
-        btn.setBorderPainted(false);
-        btn.setOpaque(true);
-        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btn.setBorder(new EmptyBorder(8, 15, 8, 15));
-        return btn;
-    }
-
+    // ---- Getters ----
     public boolean isConfirmed() { return confirmed; }
     public String getStudentId() { return studentIdField.getText().trim(); }
     public String getStudentName() { return nameField.getText().trim(); }

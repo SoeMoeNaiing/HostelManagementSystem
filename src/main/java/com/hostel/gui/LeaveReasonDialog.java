@@ -15,28 +15,35 @@ public class LeaveReasonDialog extends JDialog {
 
     private void initUI(JFrame parent, String studentName) {
         JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
-        mainPanel.setBorder(new EmptyBorder(15, 15, 15, 15));
-        mainPanel.setBackground(Color.WHITE);
+        mainPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
+        mainPanel.setBackground(UITheme.WHITE);
 
         JLabel header = new JLabel("Enter leave reason for " + studentName + ":");
-        header.setFont(new Font("SansSerif", Font.BOLD, 13));
+        header.setFont(UITheme.HEADER);
+        header.setForeground(UITheme.PRIMARY_DARK);
+        header.setBorder(new EmptyBorder(0, 0, 10, 0));
         mainPanel.add(header, BorderLayout.NORTH);
 
-        reasonArea = new JTextArea(4, 30);
+        reasonArea = new JTextArea(5, 32);
         reasonArea.setLineWrap(true);
         reasonArea.setWrapStyleWord(true);
-        reasonArea.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        reasonArea.setFont(UITheme.BODY);
+        reasonArea.setBorder(new EmptyBorder(6, 8, 6, 8));
+
         JScrollPane scrollPane = new JScrollPane(reasonArea);
+        scrollPane.setBorder(BorderFactory.createLineBorder(UITheme.BORDER));
+        scrollPane.setPreferredSize(new Dimension(360, 120));
         mainPanel.add(scrollPane, BorderLayout.CENTER);
 
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        buttonPanel.setBackground(Color.WHITE);
-        JButton saveBtn = createModernButton("Save", new Color(33, 97, 140));
-        JButton cancelBtn = createModernButton("Cancel", Color.GRAY);
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        buttonPanel.setBackground(UITheme.WHITE);
+        JButton saveBtn = UITheme.createButton("Save", UITheme.PRIMARY);
+        JButton cancelBtn = UITheme.createButton("Cancel", UITheme.GRAY);
 
         saveBtn.addActionListener(e -> {
             if (reasonArea.getText().trim().isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Please enter a reason.", "Validation Error", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Please enter a reason.",
+                        "Validation Error", JOptionPane.ERROR_MESSAGE);
                 return;
             }
             confirmed = true;
@@ -51,19 +58,9 @@ public class LeaveReasonDialog extends JDialog {
         add(mainPanel);
         pack();
         setLocationRelativeTo(parent);
-    }
 
-    private JButton createModernButton(String text, Color bg) {
-        JButton btn = new JButton(text);
-        btn.setBackground(bg);
-        btn.setForeground(Color.WHITE);
-        btn.setFont(new Font("SansSerif", Font.BOLD, 12));
-        btn.setFocusPainted(false);
-        btn.setBorderPainted(false);
-        btn.setOpaque(true);
-        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btn.setBorder(new EmptyBorder(6, 15, 6, 15));
-        return btn;
+        // Focus on the text area for quick typing
+        SwingUtilities.invokeLater(reasonArea::requestFocusInWindow);
     }
 
     public boolean isConfirmed() { return confirmed; }

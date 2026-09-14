@@ -1,6 +1,7 @@
 package com.hostel.gui;
 
 import com.hostel.dao.RoomDAO;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
@@ -28,23 +29,43 @@ public class AssignStudentDialog extends JDialog {
         setLayout(new BorderLayout());
 
         JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
-        mainPanel.setBorder(new EmptyBorder(15, 15, 15, 15));
-        mainPanel.setBackground(Color.WHITE);
+        mainPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
+        mainPanel.setBackground(UITheme.WHITE);
 
         JLabel title = new JLabel("Select a student to assign");
-        title.setFont(new Font("SansSerif", Font.BOLD, 14));
+        title.setFont(UITheme.HEADER);
+        title.setForeground(UITheme.PRIMARY);
+        title.setBorder(new EmptyBorder(0, 0, 8, 0));
         mainPanel.add(title, BorderLayout.NORTH);
 
         String[] cols = {"Roll No.", "Name", "Year", "Major", "Phone"};
-        tableModel = new DefaultTableModel(cols, 0);
+        tableModel = new DefaultTableModel(cols, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) { return false; }
+        };
         studentTable = new JTable(tableModel);
-        studentTable.setRowHeight(22);
-        JScrollPane scrollPane = new JScrollPane(studentTable);
+        studentTable.setRowHeight(25);
+        studentTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        studentTable.getTableHeader().setFont(UITheme.BUTTON);
+        studentTable.setFont(UITheme.BODY);
 
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
-        buttonPanel.setBackground(Color.WHITE);
-        JButton assignBtn = createModernButton("Assign", new Color(33, 97, 140));
-        JButton cancelBtn = createModernButton("Cancel", Color.GRAY);
+        // Double-click a row → assign directly
+        studentTable.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                if (e.getClickCount() == 2 && studentTable.getSelectedRow() != -1) {
+                    assignSelectedStudent();
+                }
+            }
+        });
+
+        JScrollPane scrollPane = new JScrollPane(studentTable);
+        scrollPane.setBorder(BorderFactory.createLineBorder(UITheme.BORDER));
+
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        buttonPanel.setBackground(UITheme.WHITE);
+        JButton assignBtn = UITheme.createButton("Assign", UITheme.PRIMARY);
+        JButton cancelBtn = UITheme.createButton("Cancel", UITheme.GRAY);
 
         assignBtn.addActionListener(e -> assignSelectedStudent());
         cancelBtn.addActionListener(e -> dispose());
@@ -56,6 +77,7 @@ public class AssignStudentDialog extends JDialog {
         mainPanel.add(buttonPanel, BorderLayout.SOUTH);
         add(mainPanel);
         pack();
+        setSize(600, 420);
         setLocationRelativeTo(getParent());
     }
 
@@ -66,6 +88,7 @@ public class AssignStudentDialog extends JDialog {
             tableModel.addRow(s);
         }
     }
+
     private void assignSelectedStudent() {
         int row = studentTable.getSelectedRow();
         if (row == -1) {
@@ -74,7 +97,6 @@ public class AssignStudentDialog extends JDialog {
         }
         String studentId = (String) tableModel.getValueAt(row, 0);
 
-        // Check if room is full
         if (roomDAO.isRoomFull(roomId)) {
             JOptionPane.showMessageDialog(this,
                     "This room is full. Cannot assign more students.",
@@ -87,22 +109,10 @@ public class AssignStudentDialog extends JDialog {
             studentAssigned = true;
             dispose();
         } else {
-            JOptionPane.showMessageDialog(this, "Failed to assign student.", "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Failed to assign student.",
+                    "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
     public boolean isStudentAssigned() { return studentAssigned; }
-
-    private JButton createModernButton(String text, Color bg) {
-        JButton btn = new JButton(text);
-        btn.setBackground(bg);
-        btn.setForeground(Color.WHITE);
-        btn.setFont(new Font("SansSerif", Font.BOLD, 12));
-        btn.setFocusPainted(false);
-        btn.setBorderPainted(false);
-        btn.setOpaque(true);
-        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btn.setBorder(new EmptyBorder(6, 12, 6, 12));
-        return btn;
-    }
 }

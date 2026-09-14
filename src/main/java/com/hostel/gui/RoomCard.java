@@ -4,20 +4,28 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import java.awt.*;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
 
 public class RoomCard extends JPanel {
-    private static final Color VACANT_BG = new Color(245, 248, 250);
+    // Card background states
+    private static final Color VACANT_BG = new Color(248, 250, 252);
     private static final Color PENDING_BG = new Color(255, 248, 200);
-    private static final Color ALL_PRESENT_BG = new Color(200, 255, 200);
-    private static final Color BORDER_COLOR = new Color(200, 210, 220);
-    private static final Color SELECTED_BORDER_COLOR = new Color(33, 97, 140);
-    private static final Color OCCUPIED_BED = new Color(46, 204, 113);
+    private static final Color ALL_PRESENT_BG = new Color(215, 250, 220);
+
+    // Bed square colors
+    private static final Color OCCUPIED_BED = UITheme.SUCCESS;
     private static final Color EMPTY_BED = new Color(220, 225, 230);
 
-    private int roomId, floor, capacity, totalAssigned;
-    private String roomNumber, hostelName, hostelType;
+    // Border
+    private static final Color BORDER_NORMAL = UITheme.BORDER;
+    private static final Color BORDER_SELECTED = UITheme.PRIMARY;
+
+    private final int roomId;
+    private final int floor;
+    private final int capacity;
+    private final String roomNumber;
+    private final String hostelName;
+    private final String hostelType;
+
     private JPanel bedPanel;
     private boolean isSelected = false;
 
@@ -30,28 +38,41 @@ public class RoomCard extends JPanel {
         this.hostelName = hostelName;
         this.hostelType = hostelType;
 
-        setLayout(new BorderLayout());
-        // Always 2px border, same padding -> no size change when selected
-        setBorder(BorderFactory.createCompoundBorder(
-                new LineBorder(BORDER_COLOR, 2, true),
-                new EmptyBorder(9, 9, 9, 9)));
+        setLayout(new BorderLayout(0, 6));
+        applyBorder(false);
         setBackground(VACANT_BG);
         setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
+        // Room number
         JLabel roomLabel = new JLabel("Room " + roomNumber);
         roomLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
-        roomLabel.setForeground(new Color(33, 97, 140));
-        add(roomLabel, BorderLayout.NORTH);
+        roomLabel.setForeground(UITheme.PRIMARY_DARK);
 
+        // Floor & hostel info
         JLabel infoLabel = new JLabel("Floor " + floor + " – " + hostelName);
-        infoLabel.setFont(new Font("SansSerif", Font.PLAIN, 11));
+        infoLabel.setFont(UITheme.SMALL);
         infoLabel.setForeground(Color.GRAY);
-        add(infoLabel, BorderLayout.CENTER);
 
+        JPanel textPanel = new JPanel(new BorderLayout(0, 2));
+        textPanel.setOpaque(false);
+        textPanel.add(roomLabel, BorderLayout.NORTH);
+        textPanel.add(infoLabel, BorderLayout.SOUTH);
+
+        // Bed squares
         bedPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
         bedPanel.setOpaque(false);
         updateBeds(0, capacity);
+
+        add(textPanel, BorderLayout.NORTH);
         add(bedPanel, BorderLayout.SOUTH);
+    }
+
+    /** Border thickness constant, so selection never shifts layout. */
+    private void applyBorder(boolean selected) {
+        Color color = selected ? BORDER_SELECTED : BORDER_NORMAL;
+        setBorder(BorderFactory.createCompoundBorder(
+                new LineBorder(color, 2, true),
+                new EmptyBorder(9, 9, 9, 9)));
     }
 
     public void updateBeds(int occupied, int totalCapacity) {
@@ -69,7 +90,6 @@ public class RoomCard extends JPanel {
     }
 
     public void updateAttendanceStatus(int present, int total) {
-        this.totalAssigned = total;
         if (total == 0) {
             setBackground(VACANT_BG);
         } else if (present == total) {
@@ -81,15 +101,7 @@ public class RoomCard extends JPanel {
 
     public void setSelected(boolean selected) {
         this.isSelected = selected;
-        if (selected) {
-            setBorder(BorderFactory.createCompoundBorder(
-                    new LineBorder(SELECTED_BORDER_COLOR, 2, true),
-                    new EmptyBorder(9, 9, 9, 9)));
-        } else {
-            setBorder(BorderFactory.createCompoundBorder(
-                    new LineBorder(BORDER_COLOR, 2, true),
-                    new EmptyBorder(9, 9, 9, 9)));
-        }
+        applyBorder(selected);
     }
 
     public boolean isSelected() { return isSelected; }

@@ -78,7 +78,7 @@ public class StudentDAO {
                                  String address, String nrc) {
         String sql = "INSERT INTO Student (student_id, student_name, gender, year, major, email, " +
                 "phone_number, guardian_name, guardian_phone, address, nrc, room_id) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)";
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,NULL )";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, studentId);
