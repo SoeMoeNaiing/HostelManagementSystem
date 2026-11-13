@@ -1,5 +1,6 @@
 package com.hostel.gui;
 
+import com.hostel.dao.AttendanceDAO;
 import com.hostel.dao.RoomDAO;
 
 import javax.swing.*;
@@ -32,7 +33,6 @@ public class StudentDetailsDialog extends JDialog {
         gbc.anchor = GridBagConstraints.WEST;
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
-        // Extract data (index matches StudentDAO.getStudentById)
         String studentId = (String) studentData[0];
         String name = (String) studentData[1];
         String gender = (String) studentData[2];
@@ -46,7 +46,6 @@ public class StudentDetailsDialog extends JDialog {
         String nrc = (String) studentData[10];
         Integer roomId = (Integer) studentData[11];
 
-        // Resolve room display
         String roomDisplay = "Not Assigned";
         if (roomId != null) {
             RoomDAO roomDAO = new RoomDAO();
@@ -72,25 +71,60 @@ public class StudentDetailsDialog extends JDialog {
 
         mainPanel.add(detailsPanel, BorderLayout.CENTER);
 
-        // ----- Close button -----
+        // ----- Attendance Stats Panel (NEW) -----
+        AttendanceDAO attendanceDAO = new AttendanceDAO();
+        int[] stats = attendanceDAO.getOverallStudentStats(studentId); // [Present, Absent, Leave]
+
+        JPanel statsPanel = new JPanel(new GridLayout(1, 3, 10, 0));
+        statsPanel.setBackground(UITheme.CARD_BG);
+        statsPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(UITheme.BORDER, 1, true),
+                new EmptyBorder(10, 10, 10, 10)
+        ));
+
+        statsPanel.add(createStatBox("Present", stats[0], UITheme.SUCCESS));
+        statsPanel.add(createStatBox("Absent", stats[1], UITheme.DANGER));
+        statsPanel.add(createStatBox("Leave", stats[2], UITheme.WARNING));
+
+        JPanel bottomWrapper = new JPanel(new BorderLayout());
+        bottomWrapper.setBackground(UITheme.WHITE);
+        bottomWrapper.add(statsPanel, BorderLayout.NORTH);
+
         JButton closeButton = UITheme.createButton("Close", UITheme.PRIMARY);
         closeButton.addActionListener(e -> dispose());
-
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 10));
         buttonPanel.setBackground(UITheme.WHITE);
         buttonPanel.add(closeButton);
-        mainPanel.add(buttonPanel, BorderLayout.SOUTH);
+        bottomWrapper.add(buttonPanel, BorderLayout.SOUTH);
+
+        mainPanel.add(bottomWrapper, BorderLayout.SOUTH);
 
         add(mainPanel);
         pack();
         setLocationRelativeTo(parent);
     }
 
+    private JPanel createStatBox(String title, int count, Color color) {
+        JPanel box = new JPanel(new BorderLayout());
+        box.setBackground(UITheme.WHITE);
+
+        JLabel countLbl = new JLabel(String.valueOf(count), SwingConstants.CENTER);
+        countLbl.setFont(new Font("SansSerif", Font.BOLD, 24));
+        countLbl.setForeground(color);
+
+        JLabel titleLbl = new JLabel(title, SwingConstants.CENTER);
+        titleLbl.setFont(UITheme.SMALL);
+        titleLbl.setForeground(Color.GRAY);
+
+        box.add(countLbl, BorderLayout.CENTER);
+        box.add(titleLbl, BorderLayout.SOUTH);
+        return box;
+    }
+
     private void addRow(JPanel panel, GridBagConstraints gbc, String label, String value, int row) {
         gbc.gridx = 0;
         gbc.gridy = row;
         gbc.weightx = 0.35;
-
         JLabel lbl = new JLabel(label);
         lbl.setFont(UITheme.BUTTON);
         lbl.setForeground(UITheme.PRIMARY_DARK);
@@ -98,7 +132,6 @@ public class StudentDetailsDialog extends JDialog {
 
         gbc.gridx = 1;
         gbc.weightx = 0.65;
-
         JLabel val = new JLabel(value != null ? value : "-");
         val.setFont(UITheme.BODY);
         panel.add(val, gbc);

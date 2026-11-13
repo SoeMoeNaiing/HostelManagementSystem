@@ -167,4 +167,54 @@ public class StudentDAO {
         }
         return null;
     }
+
+    public int getTotalStudentCount(String hostelType) {
+        String sql = "SELECT COUNT(*) FROM Student";
+        if (hostelType != null) sql += " WHERE gender = ?";
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            if (hostelType != null) {
+                ps.setString(1, "Boys".equalsIgnoreCase(hostelType) ? "Male" : "Female");
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getInt(1);
+            }
+        } catch (SQLException e) { e.printStackTrace(); }
+        return 0;
+    }
+
+    public List<Object[]> getAllStudentsForExport(String hostelType) {
+        List<Object[]> list = new ArrayList<>();
+        String sql = "SELECT s.student_id, s.student_name, s.gender, s.year, s.major, s.email, " +
+                "s.phone_number, s.guardian_name, s.guardian_phone, s.address, s.nrc, " +
+                "r.room_number, h.hostel_name " +
+                "FROM Student s " +
+                "LEFT JOIN Room r ON s.room_id = r.room_id " +
+                "LEFT JOIN Hostel h ON r.hostel_id = h.hostel_id ";
+
+        if (hostelType != null) sql += " WHERE s.gender = ? ";
+        sql += " ORDER BY s.student_id";
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            if (hostelType != null) {
+                ps.setString(1, "Boys".equalsIgnoreCase(hostelType) ? "Male" : "Female");
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(new Object[]{
+                            rs.getString("student_id"), rs.getString("student_name"),
+                            rs.getString("gender"), rs.getString("year"), rs.getString("major"),
+                            rs.getString("email"), rs.getString("phone_number"),
+                            rs.getString("guardian_name"), rs.getString("guardian_phone"),
+                            rs.getString("address"), rs.getString("nrc"),
+                            rs.getString("room_number") != null ? rs.getString("room_number") : "Not Assigned",
+                            rs.getString("hostel_name") != null ? rs.getString("hostel_name") : "N/A"
+                    });
+                }
+            }
+        } catch (SQLException e) { e.printStackTrace(); }
+        return list;
+    }
 }

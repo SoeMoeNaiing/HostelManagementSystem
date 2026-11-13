@@ -201,4 +201,186 @@ public class AttendanceDAO {
         }
         return records;
     }
+    public int getTodayMarkedCount(String hostelType) {
+        String sql = "SELECT COUNT(DISTINCT rc.student_id) FROM RollCall rc " +
+                "JOIN Student s ON rc.student_id = s.student_id " +
+                "WHERE rc.date = CURDATE() ";
+        if (hostelType != null) sql += " AND s.gender = ?";
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            if (hostelType != null) {
+                ps.setString(1, "Boys".equalsIgnoreCase(hostelType) ? "Male" : "Female");
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getInt(1);
+            }
+        } catch (SQLException e) { e.printStackTrace(); }
+        return 0;
+    }
+
+    public List<Object[]> getAllAttendanceForExport(String hostelType) {
+        List<Object[]> list = new ArrayList<>();
+        String sql = "SELECT rc.date, s.student_id, s.student_name, s.gender, rc.status, rc.remark " +
+                "FROM RollCall rc JOIN Student s ON rc.student_id = s.student_id ";
+        if (hostelType != null) sql += " WHERE s.gender = ? ";
+        sql += " ORDER BY rc.date DESC, s.student_id";
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            if (hostelType != null) {
+                ps.setString(1, "Boys".equalsIgnoreCase(hostelType) ? "Male" : "Female");
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(new Object[]{
+                            rs.getString("date"), rs.getString("student_id"),
+                            rs.getString("student_name"), rs.getString("gender"),
+                            rs.getString("status"), rs.getString("remark")
+                    });
+                }
+            }
+        } catch (SQLException e) { e.printStackTrace(); }
+        return list;
+    }
+
+    public void resetAllAttendance() {
+        String sql = "DELETE FROM RollCall";
+        try (Connection conn = DBConnection.getConnection();
+             Statement stmt = conn.createStatement()) {
+            stmt.executeUpdate(sql);
+        } catch (SQLException e) { e.printStackTrace(); }
+    }
+
+    // 1. New method to mark leave for a specific date
+    public boolean markLeaveForDate(String studentId, String dateStr, String remark) {
+        // Use INSERT IGNORE so it skips if the student is already marked that day
+        String sql = "INSERT IGNORE INTO RollCall (student_id, date, check_in_time, method, terminal_id, status, remark) " +
+                "VALUES (?, ?, NULL, 'MANUAL', 'DESKTOP-1', 'Leave', ?)";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, studentId);
+            ps.setString(2, dateStr);
+            ps.setString(3, remark);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    // 2. Backup before reset
+    public void backupAttendance() {
+        try (Connection conn = DBConnection.getConnection();
+             Statement stmt = conn.createStatement()) {
+            stmt.executeUpdate("TRUNCATE TABLE RollCall_Backup");
+            stmt.executeUpdate("INSERT INTO RollCall_Backup SELECT * FROM RollCall");
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // 3. Undo Reset
+    public void undoReset() {
+        try (Connection conn = DBConnection.getConnection();
+             Statement stmt = conn.createStatement()) {
+            stmt.executeUpdate("TRUNCATE TABLE RollCall");
+            stmt.executeUpdate("INSERT INTO RollCall SELECT * FROM RollCall_Backup");
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // 1. Get all students + their status for today
+    // Get only UNMARKED students for today
+    public List<Object[]> getPendingAttendanceTable(String hostelType) {
+        List<Object[]> list = new ArrayList<>();
+        String sql = "SELECT s.student_id, s.student_name, s.year, s.major " +
+                "FROM Student s " +
+                "LEFT JOIN RollCall rc ON s.student_id = rc.student_id AND rc.date = CURDATE() " +
+                "WHERE rc.rollcall_id IS NULL "; // <-- Only unmarked!
+        if (hostelType != null) {
+            sql += " AND s.gender = ? ";
+        }
+        sql += " ORDER BY s.student_id";
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            if (hostelType != null) {
+                ps.setString(1, "Boys".equalsIgnoreCase(hostelType) ? "Male" : "Female");
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(new Object[]{
+                            rs.getString("student_id"),
+                            rs.getString("student_name"),
+                            rs.getString("year"),
+                            rs.getString("major")
+                    });
+                }
+            }
+        } catch (SQLException e) { e.printStackTrace(); }
+        return list;
+    }
+
+    // 2. Insert OR Update attendance (handles overriding Leave)
+    public boolean markOrUpdateAttendance(String studentId, String status) {
+        String sql = "INSERT INTO RollCall (student_id, date, check_in_time, method, terminal_id, status) " +
+                "VALUES (?, CURDATE(), ?, 'MANUAL', 'DESKTOP-1', ?) " +
+                "ON DUPLICATE KEY UPDATE status = VALUES(status), check_in_time = VALUES(check_in_time)";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, studentId);
+            if ("Present".equalsIgnoreCase(status)) {
+                ps.setTimestamp(2, new Timestamp(System.currentTimeMillis()));
+            } else {
+                ps.setNull(2, Types.TIMESTAMP);
+            }
+            ps.setString(3, status);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+    public boolean markAttendanceForDate(String studentId, String dateStr, String status, String remark) {
+        String sql = "INSERT INTO RollCall (student_id, date, check_in_time, method, terminal_id, status, remark) " +
+                "VALUES (?, ?, ?, 'MANUAL', 'DESKTOP-1', ?, ?) " +
+                "ON DUPLICATE KEY UPDATE status = VALUES(status), check_in_time = VALUES(check_in_time), remark = VALUES(remark)";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, studentId);
+            ps.setString(2, dateStr);
+            if ("Present".equalsIgnoreCase(status)) {
+                ps.setTimestamp(3, new Timestamp(System.currentTimeMillis()));
+            } else {
+                ps.setNull(3, Types.TIMESTAMP);
+            }
+            ps.setString(4, status);
+            ps.setString(5, remark);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public int[] getOverallStudentStats(String studentId) {
+        String sql = "SELECT " +
+                "SUM(CASE WHEN status = 'Present' THEN 1 ELSE 0 END), " +
+                "SUM(CASE WHEN status = 'Absent' THEN 1 ELSE 0 END), " +
+                "SUM(CASE WHEN status = 'Leave' THEN 1 ELSE 0 END) " +
+                "FROM RollCall WHERE student_id = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, studentId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return new int[]{ rs.getInt(1), rs.getInt(2), rs.getInt(3) };
+                }
+            }
+        } catch (SQLException e) { e.printStackTrace(); }
+        return new int[]{0, 0, 0};
+    }
+// (Keep your existing getAllAttendanceForExport and resetAllAttendance)
 }

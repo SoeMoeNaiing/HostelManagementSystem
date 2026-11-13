@@ -16,6 +16,8 @@ public class RoomDetailsDialog extends JDialog {
     private Runnable refreshCallback;
     private String hostelType;
 
+    private JButton assignBtn; // Moved to class level so we can disable it
+
     public RoomDetailsDialog(JFrame parent, int roomId, String roomTitle,
                              Runnable refreshCallback, String hostelType) {
         super(parent, "Room " + roomTitle, true);
@@ -72,7 +74,7 @@ public class RoomDetailsDialog extends JDialog {
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         buttonPanel.setBackground(UITheme.WHITE);
 
-        JButton assignBtn = UITheme.createButton("+ Assign Student", UITheme.PRIMARY);
+        assignBtn = UITheme.createButton("+ Assign Student", UITheme.PRIMARY);
         JButton unassignBtn = UITheme.createButton("– Unassign Selected", UITheme.DANGER);
         JButton closeBtn = UITheme.createButton("Close", UITheme.GRAY);
 
@@ -97,6 +99,20 @@ public class RoomDetailsDialog extends JDialog {
         for (Object[] s : students) {
             tableModel.addRow(s);
         }
+        // Check if room is full and update button state
+        updateAssignButtonState();
+    }
+
+    private void updateAssignButtonState() {
+        if (roomDAO.isRoomFull(roomId)) {
+            assignBtn.setEnabled(false);
+            assignBtn.setText("Room Full");
+            assignBtn.setBackground(Color.GRAY);
+        } else {
+            assignBtn.setEnabled(true);
+            assignBtn.setText("+ Assign Student");
+            assignBtn.setBackground(UITheme.PRIMARY);
+        }
     }
 
     private void openAssignDialog() {
@@ -104,7 +120,7 @@ public class RoomDetailsDialog extends JDialog {
         AssignStudentDialog dialog = new AssignStudentDialog(parent, roomId, hostelType);
         dialog.setVisible(true);
         if (dialog.isStudentAssigned()) {
-            loadAssignedStudents();
+            loadAssignedStudents(); // This will also update the button state
             if (refreshCallback != null) refreshCallback.run();
             JOptionPane.showMessageDialog(this, "Student assigned successfully.");
         }
@@ -124,7 +140,7 @@ public class RoomDetailsDialog extends JDialog {
         if (confirm == JOptionPane.YES_OPTION) {
             boolean ok = roomDAO.unassignStudent(studentId);
             if (ok) {
-                loadAssignedStudents();
+                loadAssignedStudents(); // This will also update the button state
                 if (refreshCallback != null) refreshCallback.run();
                 JOptionPane.showMessageDialog(this, "Student unassigned.");
             } else {

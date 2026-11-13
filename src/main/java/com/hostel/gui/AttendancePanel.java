@@ -4,18 +4,20 @@ import com.hostel.dao.AttendanceDAO;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.util.List;
 
 public class AttendancePanel extends JPanel {
     private AttendanceDAO attendanceDAO;
-    private Object[] currentStudent;
-    private JLabel nameLabel, idLabel, infoLabel;
-    private JButton presentBtn, absentBtn;
+    private JTable table;
+    private DefaultTableModel tableModel;
     private String hostelType;
 
     public AttendancePanel(String hostelType) {
         this.hostelType = hostelType;
-        attendanceDAO = new AttendanceDAO();
+        this.attendanceDAO = new AttendanceDAO();
+
         setLayout(new BorderLayout());
         setBackground(UITheme.BACKGROUND);
 
@@ -33,102 +35,137 @@ public class AttendancePanel extends JPanel {
         dateLabel.setForeground(UITheme.WHITE);
         dateLabel.setFont(UITheme.BODY);
         titleBar.add(dateLabel, BorderLayout.EAST);
-
-        // ----- Center card -----
-        JPanel cardPanel = new JPanel(new GridBagLayout());
-        cardPanel.setBackground(UITheme.BACKGROUND);
-        cardPanel.setBorder(new EmptyBorder(30, 30, 30, 30));
-
-        JPanel card = new JPanel();
-        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
-        card.setBackground(UITheme.CARD_BG);
-        card.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(UITheme.BORDER, 1, true),
-                new EmptyBorder(30, 60, 30, 60)));
-
-        nameLabel = new JLabel("No student");
-        nameLabel.setFont(new Font("SansSerif", Font.BOLD, 26));
-        nameLabel.setForeground(UITheme.PRIMARY_DARK);
-        nameLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-        idLabel = new JLabel();
-        idLabel.setFont(new Font("SansSerif", Font.PLAIN, 16));
-        idLabel.setForeground(new Color(60, 60, 60));
-        idLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-        infoLabel = new JLabel();
-        infoLabel.setFont(UITheme.BODY);
-        infoLabel.setForeground(Color.GRAY);
-        infoLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-        card.add(Box.createVerticalStrut(10));
-        card.add(nameLabel);
-        card.add(Box.createVerticalStrut(8));
-        card.add(idLabel);
-        card.add(Box.createVerticalStrut(5));
-        card.add(infoLabel);
-        card.add(Box.createVerticalStrut(25));
-
-        presentBtn = createActionButton("✔ Present", UITheme.SUCCESS);
-        absentBtn = createActionButton("✘ Absent", UITheme.DANGER);
-
-        presentBtn.addActionListener(e -> markCurrent("Present"));
-        absentBtn.addActionListener(e -> markCurrent("Absent"));
-
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 0));
-        buttonPanel.setBackground(UITheme.CARD_BG);
-        buttonPanel.add(presentBtn);
-        buttonPanel.add(absentBtn);
-        card.add(buttonPanel);
-
-        cardPanel.add(card);
-
         add(titleBar, BorderLayout.NORTH);
-        add(cardPanel, BorderLayout.CENTER);
 
-        loadNextStudent();
+        // ----- Table -----
+        // Columns 4 and 5 will hold our buttons
+        String[] cols = {"Roll No.", "Name", "Year", "Major", "Mark Present", "Mark Absent"};
+
+        // We override getColumnClass so the table knows columns 4 and 5 are JButtons
+        tableModel = new DefaultTableModel(cols, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return column == 4 || column == 5; // Only buttons are editable
+            }
+            @Override
+            public Class<?> getColumnClass(int columnIndex) {
+                return columnIndex >= 4 ? JButton.class : String.class;
+            }
+        };
+
+        table = new JTable(tableModel);
+        table.setRowHeight(38); // Taller rows to fit buttons
+        table.setFont(UITheme.BODY);
+        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        table.getTableHeader().setFont(UITheme.BUTTON);
+        table.getTableHeader().setBackground(UITheme.PRIMARY);
+        table.getTableHeader().setForeground(UITheme.WHITE);
+        table.getTableHeader().setPreferredSize(new Dimension(0, 32));
+
+        // Set column widths
+        table.getColumnModel().getColumn(0).setPreferredWidth(100);
+        table.getColumnModel().getColumn(1).setPreferredWidth(180);
+        table.getColumnModel().getColumn(4).setPreferredWidth(110);
+        table.getColumnModel().getColumn(5).setPreferredWidth(110);
+
+        // Attach the custom button renderer and editor
+        table.getColumnModel().getColumn(4).setCellRenderer(new ButtonRenderer("✔ Present", UITheme.SUCCESS));
+        table.getColumnModel().getColumn(4).setCellEditor(new ButtonEditor("✔ Present", UITheme.SUCCESS, "Present"));
+
+        table.getColumnModel().getColumn(5).setCellRenderer(new ButtonRenderer("✘ Absent", UITheme.DANGER));
+        table.getColumnModel().getColumn(5).setCellEditor(new ButtonEditor("✘ Absent", UITheme.DANGER, "Absent"));
+
+        JScrollPane scrollPane = new JScrollPane(table);
+        scrollPane.setBorder(new EmptyBorder(5, 15, 15, 15));
+
+        add(scrollPane, BorderLayout.CENTER);
+
+        // Load initial data
+        loadTableData();
     }
 
-    public void loadNextStudent() {
-        currentStudent = attendanceDAO.getNextUnmarkedStudent(hostelType);
-        if (currentStudent == null) {
-            nameLabel.setText("All students marked for today");
-            idLabel.setText("");
-            infoLabel.setText("");
-            presentBtn.setEnabled(false);
-            absentBtn.setEnabled(false);
-            return;
+    public void loadTableData() {
+        tableModel.setRowCount(0);
+        List<Object[]> data = attendanceDAO.getPendingAttendanceTable(hostelType);
+
+        for (Object[] row : data) {
+            // We add null for the button columns, the renderer draws the buttons
+            tableModel.addRow(new Object[]{ row[0], row[1], row[2], row[3], null, null });
         }
-        presentBtn.setEnabled(true);
-        absentBtn.setEnabled(true);
-        nameLabel.setText((String) currentStudent[1]);
-        idLabel.setText("Roll No: " + currentStudent[0]);
-        infoLabel.setText(currentStudent[2] + " | " + currentStudent[3] + " | " + currentStudent[4]);
+
+        if (data.isEmpty()) {
+            // If empty, we can show a message or just leave the empty table
+        }
     }
 
-    private void markCurrent(String status) {
-        if (currentStudent == null) return;
-        String studentId = (String) currentStudent[0];
-        boolean ok = attendanceDAO.markAttendance(studentId, status, null);
+    // ----- INNER CLASSES FOR BUTTONS -----
+
+    // 1. Renderer (What the button looks like)
+    class ButtonRenderer extends JButton implements javax.swing.table.TableCellRenderer {
+        public ButtonRenderer(String text, Color bg) {
+            setText(text);
+            setBackground(bg);
+            setForeground(Color.WHITE);
+            setFont(UITheme.BUTTON);
+            setFocusPainted(false);
+            setBorderPainted(false);
+            setOpaque(true);
+        }
+        public Component getTableCellRendererComponent(JTable table, Object value,
+                                                       boolean isSelected, boolean hasFocus, int row, int column) {
+            return this;
+        }
+    }
+
+    // 2. Editor (What happens when you click the button)
+    class ButtonEditor extends DefaultCellEditor {
+        private JButton button;
+        private String statusToMark;
+        private int currentRow;
+
+        public ButtonEditor(String text, Color bg, String statusToMark) {
+            super(new JCheckBox()); // Dummy component for superclass
+            this.statusToMark = statusToMark;
+            button = new JButton(text);
+            button.setBackground(bg);
+            button.setForeground(Color.WHITE);
+            button.setFont(UITheme.BUTTON);
+            button.setFocusPainted(false);
+            button.setBorderPainted(false);
+            button.setOpaque(true);
+
+            button.addActionListener(e -> {
+                fireEditingStopped(); // Tell table editing is done
+                markStudent(currentRow, statusToMark);
+            });
+        }
+
+        public Component getTableCellEditorComponent(JTable table, Object value,
+                                                     boolean isSelected, int row, int column) {
+            currentRow = row;
+            return button;
+        }
+
+        public Object getCellEditorValue() {
+            return null;
+        }
+    }
+
+    // Logic to update database and remove the row
+    private void markStudent(int row, String status) {
+        String studentId = (String) tableModel.getValueAt(row, 0);
+        String studentName = (String) tableModel.getValueAt(row, 1);
+
+        // Check for Leave Override (Just in case they somehow got into this list)
+        // Since we query only "Unmarked", Leave students won't appear here naturally.
+        // But this is good safety.
+
+        boolean ok = attendanceDAO.markOrUpdateAttendance(studentId, status);
         if (ok) {
-            loadNextStudent();
+            // Instantly remove the row so the next student moves up
+            tableModel.removeRow(row);
         } else {
-            JOptionPane.showMessageDialog(this, "Failed to mark attendance.",
-                    "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Failed to mark " + studentName, "Error", JOptionPane.ERROR_MESSAGE);
         }
-    }
-
-    private JButton createActionButton(String text, Color bg) {
-        JButton btn = new JButton(text);
-        btn.setBackground(bg);
-        btn.setForeground(UITheme.WHITE);
-        btn.setFont(new Font("SansSerif", Font.BOLD, 16));
-        btn.setFocusPainted(false);
-        btn.setBorderPainted(false);
-        btn.setOpaque(true);
-        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btn.setBorder(new EmptyBorder(12, 30, 12, 30));
-        btn.setPreferredSize(new Dimension(160, 48));
-        return btn;
     }
 }

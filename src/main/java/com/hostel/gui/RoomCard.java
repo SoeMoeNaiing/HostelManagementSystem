@@ -8,8 +8,8 @@ import java.awt.*;
 public class RoomCard extends JPanel {
     // Card background states
     private static final Color VACANT_BG = new Color(248, 250, 252);
-    private static final Color PENDING_BG = new Color(255, 248, 200);
-    private static final Color ALL_PRESENT_BG = new Color(215, 250, 220);
+    private static final Color PENDING_BG = new Color(255, 248, 200); // Yellow
+    private static final Color ALL_PRESENT_BG = new Color(215, 250, 220); // Green
 
     // Bed square colors
     private static final Color OCCUPIED_BED = UITheme.SUCCESS;
@@ -27,6 +27,7 @@ public class RoomCard extends JPanel {
     private final String hostelType;
 
     private JPanel bedPanel;
+    private JLabel attendanceLabel; // NEW
     private boolean isSelected = false;
 
     public RoomCard(int roomId, String roomNumber, int floor, int capacity,
@@ -58,16 +59,26 @@ public class RoomCard extends JPanel {
         textPanel.add(roomLabel, BorderLayout.NORTH);
         textPanel.add(infoLabel, BorderLayout.SOUTH);
 
-        // Bed squares
+        // Bed squares & Attendance Label
+        JPanel bottomPanel = new JPanel(new BorderLayout());
+        bottomPanel.setOpaque(false);
+
         bedPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
         bedPanel.setOpaque(false);
+
+        attendanceLabel = new JLabel(""); // Will show "0/0 Present"
+        attendanceLabel.setFont(UITheme.SMALL);
+        attendanceLabel.setForeground(Color.DARK_GRAY);
+
+        bottomPanel.add(bedPanel, BorderLayout.WEST);
+        bottomPanel.add(attendanceLabel, BorderLayout.EAST);
+
         updateBeds(0, capacity);
 
         add(textPanel, BorderLayout.NORTH);
-        add(bedPanel, BorderLayout.SOUTH);
+        add(bottomPanel, BorderLayout.SOUTH);
     }
 
-    /** Border thickness constant, so selection never shifts layout. */
     private void applyBorder(boolean selected) {
         Color color = selected ? BORDER_SELECTED : BORDER_NORMAL;
         setBorder(BorderFactory.createCompoundBorder(
@@ -89,13 +100,19 @@ public class RoomCard extends JPanel {
         bedPanel.repaint();
     }
 
-    public void updateAttendanceStatus(int present, int total) {
-        if (total == 0) {
+    // UPDATED: Now takes present count and total assigned
+    public void updateAttendanceStatus(int present, int totalAssigned) {
+        if (totalAssigned == 0) {
             setBackground(VACANT_BG);
-        } else if (present == total) {
-            setBackground(ALL_PRESENT_BG);
+            attendanceLabel.setText("");
+        } else if (present == totalAssigned) {
+            setBackground(ALL_PRESENT_BG); // All present -> Green
+            attendanceLabel.setText("(" + present + "/" + totalAssigned + " Present)");
+            attendanceLabel.setForeground(new Color(0, 100, 0)); // Dark Green
         } else {
-            setBackground(PENDING_BG);
+            setBackground(PENDING_BG); // Some missing -> Yellow
+            attendanceLabel.setText("(" + present + "/" + totalAssigned + " Present)");
+            attendanceLabel.setForeground(new Color(150, 100, 0)); // Dark Orange
         }
     }
 

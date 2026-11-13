@@ -20,10 +20,12 @@ public class DashboardFrame extends JFrame {
     private String role;
     private Integer hostelId;
     private String hostelType;
+    private HomePanel homePanel;
+    private SettingsPanel settingsPanel;
 
     // Track nav buttons to highlight the active one
     private final Map<String, JButton> navButtons = new HashMap<>();
-    private String activeCard = "STUDENTS";
+    private String activeCard = "HOME";
 
     public DashboardFrame(String role, Integer hostelId, String hostelType) {
         this.role = role;
@@ -45,22 +47,30 @@ public class DashboardFrame extends JFrame {
         contentPanel = new JPanel(cardLayout);
         contentPanel.setBackground(UITheme.BACKGROUND);
 
+        // 1. Initialize all panels (Fixed SettingsPanel constructor)
+        settingsPanel = new SettingsPanel(hostelType, hostelId, role, this::logout, roomPanel);
         studentPanel = new StudentPanel(hostelType);
         roomPanel = new RoomPanel(hostelId, hostelType);
         attendancePanel = new AttendancePanel(hostelType);
         reportPanel = new DailyAttendancePanel(hostelType);
         studentReportPanel = new StudentReportPanel(hostelType);
+        homePanel = new HomePanel(hostelType, hostelId);
 
-        studentPanel.setOnStudentDataChanged(() -> roomPanel.refreshRoomCards());
-
+        // 2. Add all panels to the CardLayout FIRST
+        contentPanel.add(homePanel, "HOME");
         contentPanel.add(studentPanel, "STUDENTS");
         contentPanel.add(roomPanel, "ROOMS");
         contentPanel.add(attendancePanel, "ATTENDANCE");
         contentPanel.add(reportPanel, "ATTENDANCE LOG");
         contentPanel.add(studentReportPanel, "STUDENT_REPORT");
+        contentPanel.add(settingsPanel, "SETTINGS");
 
-        cardLayout.show(contentPanel, "STUDENTS");
-        highlightActiveButton("STUDENTS");
+        // 3. Setup connections
+        studentPanel.setOnStudentDataChanged(() -> roomPanel.refreshRoomCards());
+
+        // 4. Show the default card (HOME)
+        cardLayout.show(contentPanel, "HOME");
+        highlightActiveButton("HOME");
 
         mainPanel.add(sidebar, BorderLayout.WEST);
         mainPanel.add(contentPanel, BorderLayout.CENTER);
@@ -79,51 +89,96 @@ public class DashboardFrame extends JFrame {
     }
 
     private JPanel createSidebar() {
-        JPanel sidebar = new JPanel();
+        JPanel sidebar = new JPanel(new BorderLayout());
         sidebar.setBackground(UITheme.SIDEBAR_BG);
-        sidebar.setLayout(new BoxLayout(sidebar, BoxLayout.Y_AXIS));
         sidebar.setPreferredSize(new Dimension(UITheme.SIDEBAR_W, getHeight()));
-        sidebar.setBorder(new EmptyBorder(20, 15, 20, 15));
+        // Keep side borders at 0 so buttons touch the edges
+        sidebar.setBorder(new EmptyBorder(20, 0, 20, 0));
 
-        // Logo
+        // ----- TOP SECTION (Logo & User) -----
+        JPanel topPanel = new JPanel();
+        topPanel.setLayout(new BoxLayout(topPanel, BoxLayout.Y_AXIS));
+        topPanel.setBackground(UITheme.SIDEBAR_BG);
+        topPanel.setBorder(new EmptyBorder(0, 20, 20, 20)); // Add padding here
+
         JLabel logoLabel = new JLabel("Smart Hostel");
         logoLabel.setForeground(UITheme.WHITE);
         logoLabel.setFont(new Font("SansSerif", Font.BOLD, 18));
         logoLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        sidebar.add(logoLabel);
+        topPanel.add(logoLabel);
 
-        // Logged-in user label
         String who = "admin".equals(role) ? "Admin" : hostelType + " Warden";
         JLabel userLabel = new JLabel(who);
         userLabel.setForeground(new Color(210, 225, 240));
         userLabel.setFont(UITheme.SMALL);
         userLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        sidebar.add(userLabel);
+        topPanel.add(userLabel);
 
-        sidebar.add(Box.createRigidArea(new Dimension(0, 25)));
+        sidebar.add(topPanel, BorderLayout.NORTH);
 
-        sidebar.add(createNavButton("👥 Students", "STUDENTS"));
-        sidebar.add(Box.createRigidArea(new Dimension(0, 6)));
-        sidebar.add(createNavButton("🏠 Rooms", "ROOMS"));
-        sidebar.add(Box.createRigidArea(new Dimension(0, 6)));
+        // ----- CENTER SECTION (Nav Buttons) -----
+        // GridLayout(0, 1, 0, 5) forces all buttons to stretch 100% width!
+        JPanel buttonPanel = new JPanel(new GridLayout(0, 1, 0, 5));
+        buttonPanel.setBackground(UITheme.SIDEBAR_BG);
+
+        JButton homeNavBtn = createNavButton("🏠 Home", "HOME");
+        homeNavBtn.addActionListener(e -> homePanel.refreshData());
+        buttonPanel.add(homeNavBtn);
+
+        buttonPanel.add(createNavButton("👥 Students", "STUDENTS"));
+        buttonPanel.add(createNavButton("🏠 Rooms", "ROOMS"));
 
         JButton attendanceNavBtn = createNavButton("📋 Attendance", "ATTENDANCE");
-        attendanceNavBtn.addActionListener(e -> attendancePanel.loadNextStudent());
-        sidebar.add(attendanceNavBtn);
-        sidebar.add(Box.createRigidArea(new Dimension(0, 6)));
+        attendanceNavBtn.addActionListener(e -> attendancePanel.loadTableData());
+        buttonPanel.add(attendanceNavBtn);
 
-        sidebar.add(createNavButton("📊 Attendance Log", "ATTENDANCE LOG"));
-        sidebar.add(Box.createRigidArea(new Dimension(0, 6)));
+        buttonPanel.add(createNavButton("📊 Attendance Log", "ATTENDANCE LOG"));
 
         JButton studentReportNavBtn = createNavButton("🧾 Student Report", "STUDENT_REPORT");
         studentReportNavBtn.addActionListener(e -> studentReportPanel.loadStudents());
-        sidebar.add(studentReportNavBtn);
+        buttonPanel.add(studentReportNavBtn);
 
-        sidebar.add(Box.createVerticalGlue());
+        // FIX: Wrap in a BorderLayout and put it in the NORTH so it doesn't stretch vertically
+        JPanel centerWrapper = new JPanel(new BorderLayout());
+        centerWrapper.setBackground(UITheme.SIDEBAR_BG);
+        centerWrapper.add(buttonPanel, BorderLayout.NORTH);
 
-        JButton logoutBtn = createLogoutButton("↩ Logout");
-        logoutBtn.addActionListener(e -> logout());
-        sidebar.add(logoutBtn);
+        sidebar.add(centerWrapper, BorderLayout.CENTER);
+
+        // ----- BOTTOM SECTION (Settings) -----
+        JPanel bottomPanel = new JPanel();
+        bottomPanel.setLayout(new BoxLayout(bottomPanel, BoxLayout.Y_AXIS));
+        bottomPanel.setBackground(UITheme.SIDEBAR_BG);
+        bottomPanel.setBorder(new EmptyBorder(10, 0, 0, 0));
+
+        JButton settingsIconBtn = new JButton("⚙");
+        settingsIconBtn.setFont(new Font("SansSerif", Font.PLAIN, 28));
+        settingsIconBtn.setForeground(UITheme.WHITE);
+        settingsIconBtn.setBackground(UITheme.SIDEBAR_BG);
+        settingsIconBtn.setBorderPainted(false);
+        settingsIconBtn.setFocusPainted(false);
+        settingsIconBtn.setContentAreaFilled(false);
+        settingsIconBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        settingsIconBtn.setToolTipText("Settings");
+        settingsIconBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        settingsIconBtn.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                settingsIconBtn.setContentAreaFilled(true);
+                settingsIconBtn.setBackground(UITheme.SIDEBAR_BTN_HOVER);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                settingsIconBtn.setContentAreaFilled(false);
+            }
+        });
+
+        settingsIconBtn.addActionListener(e -> {
+            cardLayout.show(contentPanel, "SETTINGS");
+            highlightActiveButton("SETTINGS");
+        });
+        bottomPanel.add(settingsIconBtn);
+
+        sidebar.add(bottomPanel, BorderLayout.SOUTH);
 
         return sidebar;
     }
@@ -132,15 +187,20 @@ public class DashboardFrame extends JFrame {
         JButton button = new JButton(text);
         button.setBackground(UITheme.SIDEBAR_BTN);
         button.setForeground(UITheme.WHITE);
-        button.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        button.setFont(new Font("SansSerif", Font.PLAIN, 15));
         button.setFocusPainted(false);
         button.setBorderPainted(false);
         button.setOpaque(true);
         button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        button.setBorder(new EmptyBorder(10, 15, 10, 15));
-        button.setAlignmentX(Component.LEFT_ALIGNMENT);
-        button.setMaximumSize(new Dimension(Integer.MAX_VALUE, button.getPreferredSize().height));
 
+        button.setHorizontalAlignment(SwingConstants.LEFT);
+        button.setBorder(new EmptyBorder(10, 20, 10, 10));
+
+        // FIX: Explicitly set the height to 45px so it doesn't stretch
+        button.setPreferredSize(new Dimension(UITheme.SIDEBAR_W, 45));
+        button.setMaximumSize(new Dimension(Integer.MAX_VALUE, 45));
+
+        // Hover effect
         button.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseEntered(java.awt.event.MouseEvent evt) {
                 if (!cardName.equals(activeCard)) {
@@ -154,6 +214,7 @@ public class DashboardFrame extends JFrame {
             }
         });
 
+        // Action
         button.addActionListener(e -> {
             cardLayout.show(contentPanel, cardName);
             highlightActiveButton(cardName);
@@ -162,7 +223,6 @@ public class DashboardFrame extends JFrame {
         navButtons.put(cardName, button);
         return button;
     }
-
     private void highlightActiveButton(String cardName) {
         // Reset all to normal
         for (Map.Entry<String, JButton> e : navButtons.entrySet()) {
@@ -174,29 +234,5 @@ public class DashboardFrame extends JFrame {
             active.setBackground(UITheme.SIDEBAR_BTN_HOVER);
         }
         activeCard = cardName;
-    }
-
-    private JButton createLogoutButton(String text) {
-        JButton button = new JButton(text);
-        button.setBackground(UITheme.DANGER);
-        button.setForeground(UITheme.WHITE);
-        button.setFont(new Font("SansSerif", Font.BOLD, 14));
-        button.setFocusPainted(false);
-        button.setBorderPainted(false);
-        button.setOpaque(true);
-        button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        button.setBorder(new EmptyBorder(10, 15, 10, 15));
-        button.setAlignmentX(Component.LEFT_ALIGNMENT);
-        button.setMaximumSize(new Dimension(Integer.MAX_VALUE, button.getPreferredSize().height));
-
-        button.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseEntered(java.awt.event.MouseEvent evt) {
-                button.setBackground(new Color(200, 70, 70));
-            }
-            public void mouseExited(java.awt.event.MouseEvent evt) {
-                button.setBackground(UITheme.DANGER);
-            }
-        });
-        return button;
     }
 }

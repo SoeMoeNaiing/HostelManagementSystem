@@ -173,36 +173,7 @@ public class RoomDAO {
             return false;
         }
     }
-    public List<Object[]> getAllRoomsWithOccupancy(Integer hostelId) {
-        List<Object[]> rooms = new ArrayList<>();
-        String sql = "SELECT r.room_id, r.room_number, r.floor_number, r.capacity, " +
-                "h.hostel_name, h.type, " +
-                "(SELECT COUNT(*) FROM Student s WHERE s.room_id = r.room_id) AS occupancy " +
-                "FROM Room r JOIN Hostel h ON r.hostel_id = h.hostel_id ";
-        if (hostelId != null) sql += " WHERE r.hostel_id = ? ";
-        sql += " ORDER BY r.floor_number, CAST(SUBSTRING(r.room_number, 2) AS UNSIGNED)";
 
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            if (hostelId != null) ps.setInt(1, hostelId);
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    rooms.add(new Object[]{
-                            rs.getInt("room_id"),
-                            rs.getString("room_number"),
-                            rs.getInt("floor_number"),
-                            rs.getInt("capacity"),
-                            rs.getString("hostel_name"),
-                            rs.getString("type"),
-                            rs.getInt("occupancy")
-                    });
-                }
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return rooms;
-    }
     /**
      * Unassign a student from any room (set room_id to NULL).
      */
@@ -320,5 +291,97 @@ public class RoomDAO {
         int capacity = getRoomCapacity(roomId);
         int occupancy = getOccupancyCount(roomId);
         return occupancy >= capacity;
+    }
+
+    public int getTotalRoomCount(Integer hostelId) {
+        String sql = "SELECT COUNT(*) FROM Room";
+        if (hostelId != null) sql += " WHERE hostel_id = ?";
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            if (hostelId != null) ps.setInt(1, hostelId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getInt(1);
+            }
+        } catch (SQLException e) { e.printStackTrace(); }
+        return 0;
+    }
+
+    public int getOccupiedRoomCount(Integer hostelId) {
+        String sql = "SELECT COUNT(DISTINCT room_id) FROM Student WHERE room_id IS NOT NULL";
+        if (hostelId != null) {
+            sql = "SELECT COUNT(DISTINCT s.room_id) FROM Student s " +
+                    "JOIN Room r ON s.room_id = r.room_id WHERE r.hostel_id = ?";
+        }
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            if (hostelId != null) ps.setInt(1, hostelId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getInt(1);
+            }
+        } catch (SQLException e) { e.printStackTrace(); }
+        return 0;
+    }
+
+    public List<Object[]> getAllRoomsForExport(Integer hostelId) {
+        List<Object[]> list = new ArrayList<>();
+        String sql = "SELECT r.room_number, r.floor_number, r.capacity, h.hostel_name, " +
+                "(SELECT COUNT(*) FROM Student s WHERE s.room_id = r.room_id) AS occupancy " +
+                "FROM Room r JOIN Hostel h ON r.hostel_id = h.hostel_id ";
+
+        if (hostelId != null) sql += " WHERE r.hostel_id = ? ";
+        sql += " ORDER BY h.hostel_name, r.floor_number, r.room_number";
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            if (hostelId != null) ps.setInt(1, hostelId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(new Object[]{
+                            rs.getString("room_number"), rs.getInt("floor_number"),
+                            rs.getInt("capacity"), rs.getInt("occupancy"),
+                            rs.getString("hostel_name")
+                    });
+                }
+            }
+        } catch (SQLException e) { e.printStackTrace(); }
+        return list;
+    }
+
+    public List<Object[]> getAllRoomsWithOccupancy(Integer hostelId) {
+        List<Object[]> rooms = new ArrayList<>();
+        String sql = "SELECT r.room_id, r.room_number, r.floor_number, r.capacity, " +
+                "h.hostel_name, h.type, " +
+                "(SELECT COUNT(*) FROM Student s WHERE s.room_id = r.room_id) AS occupancy, " +
+                "(SELECT COUNT(*) FROM Student s JOIN RollCall rc ON s.student_id = rc.student_id " +
+                " WHERE s.room_id = r.room_id AND rc.date = CURDATE() AND rc.status = 'Present') AS present_today " +
+                "FROM Room r JOIN Hostel h ON r.hostel_id = h.hostel_id ";
+        if (hostelId != null) {
+            sql += " WHERE r.hostel_id = ? ";
+        }
+        sql += " ORDER BY r.floor_number, CAST(SUBSTRING(r.room_number, 2) AS UNSIGNED)";
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            if (hostelId != null) ps.setInt(1, hostelId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    rooms.add(new Object[]{
+                            rs.getInt("room_id"),
+                            rs.getString("room_number"),
+                            rs.getInt("floor_number"),
+                            rs.getInt("capacity"),
+                            rs.getString("hostel_name"),
+                            rs.getString("type"),
+                            rs.getInt("occupancy"),
+                            rs.getInt("present_today")   // <-- NEW: index 7
+                    });
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return rooms;
     }
 }
