@@ -7,7 +7,7 @@ import java.sql.SQLException;
 
 public class DBConnection {
     // CHANGE THESE to match your MySQL setup
-    private static final String URL = "jdbc:mysql://localhost:3306/smart_hostel";
+    private static final String URL = "jdbc:mysql://localhost:3306/hostelDB";
     private static final String USER = "root";          // or your custom user
     private static final String PASSWORD = "smn12345";
 
